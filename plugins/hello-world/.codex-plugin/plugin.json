@@ -1,0 +1,17 @@
+{
+  "name": "hello-world",
+  "version": "0.1.0",
+  "description": "Example plugin with a friendly greeting skill. Copy it as a template for new plugins.",
+  "author": {
+    "name": "falconh",
+    "email": "wongfalcon@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["example", "greeting", "template"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hello World",
+    "shortDescription": "A friendly greeting skill.",
+    "category": "Productivity"
+  }
+}

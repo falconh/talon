@@ -1,0 +1,128 @@
+# 🦅 Talon
+
+**Talon** is a personal plugin marketplace for AI coding agents. It hosts
+reusable **skills** and serves them natively to **both [Claude Code](https://code.claude.com/docs)
+and [Codex](https://developers.openai.com/codex)** from a single source of truth.
+
+One repo, two marketplaces, the same skills.
+
+## Install
+
+### Claude Code
+
+```bash
+# Add the marketplace
+/plugin marketplace add falconh/talon
+
+# Install a plugin from it
+/plugin install hello-world@talon
+```
+
+Update later with `/plugin marketplace update talon`.
+
+### Codex
+
+```bash
+# Add the marketplace
+codex plugin marketplace add falconh/talon
+
+# Then browse and enable plugins in the TUI
+/plugins
+```
+
+Update later with `codex plugin marketplace upgrade talon`.
+
+> You can also grab a single skill directly, without the marketplace:
+> ```bash
+> codex
+> $skill-installer install https://github.com/falconh/talon/tree/main/plugins/hello-world/skills/greet
+> ```
+
+## How it works
+
+Both ecosystems support the same `marketplace add owner/repo` flow and load the
+same [`SKILL.md`](https://developers.openai.com/codex/skills) files. They differ
+only in where each looks for its catalog and plugin manifest:
+
+| | Claude Code | Codex |
+| --- | --- | --- |
+| Marketplace catalog | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` |
+| Plugin manifest | `plugins/<p>/.claude-plugin/plugin.json` | `plugins/<p>/.codex-plugin/plugin.json` |
+| Skills (shared) | `plugins/<p>/skills/<s>/SKILL.md` | same file (via `"skills": "./skills/"`) |
+| Add command | `/plugin marketplace add falconh/talon` | `codex plugin marketplace add falconh/talon` |
+| Install | `/plugin install <p>@talon` | enable in `/plugins` |
+
+The **skill body lives exactly once**. Both marketplaces point at the same
+plugin directories, and each `SKILL.md` carries both `name` and `description`
+in its frontmatter so it is valid in both tools.
+
+## Repository layout
+
+```
+talon/
+├── .claude-plugin/marketplace.json     # Claude Code catalog
+├── .agents/plugins/marketplace.json    # Codex catalog
+├── plugins/
+│   └── hello-world/                     # one plugin = one entry in BOTH catalogs
+│       ├── .claude-plugin/plugin.json   # Claude Code manifest
+│       ├── .codex-plugin/plugin.json    # Codex manifest
+│       └── skills/
+│           └── greet/SKILL.md           # shared skill (example/template)
+├── AGENTS.md                            # repo context for agents
+├── README.md
+└── LICENSE
+```
+
+## Add a new plugin
+
+Each plugin is its own entry in both catalogs. To add one:
+
+1. **Copy the example** as a starting point:
+   ```bash
+   cp -r plugins/hello-world plugins/<your-plugin>
+   ```
+2. **Edit the two plugin manifests** in `plugins/<your-plugin>/`:
+   - `.claude-plugin/plugin.json` — set `name`, `description`, `version`.
+   - `.codex-plugin/plugin.json` — set the same `name`, `description`,
+     `version`, and keep `"skills": "./skills/"`.
+3. **Write your skill(s)** under `plugins/<your-plugin>/skills/<skill>/SKILL.md`.
+   The frontmatter **must** include both `name` and `description`:
+   ```markdown
+   ---
+   name: <skill-name>
+   description: One line on exactly when this skill should trigger.
+   ---
+
+   Instructions for the agent...
+   ```
+4. **Register the plugin in both catalogs:**
+   - `.claude-plugin/marketplace.json` → add to `plugins[]`:
+     ```json
+     {
+       "name": "<your-plugin>",
+       "source": "./plugins/<your-plugin>",
+       "description": "...",
+       "version": "0.1.0"
+     }
+     ```
+   - `.agents/plugins/marketplace.json` → add to `plugins[]`:
+     ```json
+     {
+       "name": "<your-plugin>",
+       "source": { "source": "local", "path": "./plugins/<your-plugin>" },
+       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+       "category": "<category>"
+     }
+     ```
+5. **Commit and push.** Users pick up the change with
+   `/plugin marketplace update talon` (Claude Code) or
+   `codex plugin marketplace upgrade talon` (Codex).
+
+### Validate before pushing
+
+- Claude Code: `claude plugin validate plugins/<your-plugin>`
+- JSON sanity: every `*.json` file must parse.
+
+## License
+
+[MIT](./LICENSE)

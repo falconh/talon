@@ -1,0 +1,21 @@
+{
+  "name": "talon",
+  "owner": {
+    "name": "falconh",
+    "email": "wongfalcon@gmail.com"
+  },
+  "metadata": {
+    "description": "Talon — a personal marketplace of Claude Code & Codex skills."
+  },
+  "plugins": [
+    {
+      "name": "hello-world",
+      "source": "./plugins/hello-world",
+      "description": "Example plugin with a friendly greeting skill. Copy it as a template for new plugins.",
+      "version": "0.1.0",
+      "author": {
+        "name": "falconh"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "talon",
+  "interface": {
+    "displayName": "Talon"
+  },
+  "plugins": [
+    {
+      "name": "hello-world",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hello-world"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
