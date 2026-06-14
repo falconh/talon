@@ -30,7 +30,7 @@
     {
       "name": "talon-onboarding",
       "source": "./plugins/talon-onboarding",
-      "description": "Maintainer skill: guides onboarding and updating plugins on the Talon marketplace with dual Claude Code + Codex support, the talon-<name> naming convention, semver version bumping + tagging, and a PR-only workflow.",
+      "description": "Maintainer skill: guides onboarding and updating plugins on the Talon marketplace with dual Claude Code + Codex support, plugin naming guidance, semver version bumping + tagging, and a PR-only workflow.",
       "version": "0.1.0",
       "author": {
         "name": "falconh"

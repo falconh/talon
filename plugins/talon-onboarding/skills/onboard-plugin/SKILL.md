@@ -5,12 +5,12 @@ description: >-
   AN UPDATE to a plugin already listed there, with correct dual Claude Code + Codex support. Use
   this WHENEVER the user wants to add, list, publish, or onboard a plugin/skill to Talon; update,
   bump, re-pin, or cut a release of a plugin in Talon; make a plugin work with both Claude Code and
-  Codex; or asks about Talon's structure, the plugin repo naming convention, or the release/version
+  Codex; or asks about Talon's structure, how to name a plugin, or the release/version
   process — even if they don't say "Talon" explicitly but reference the marketplace, its catalogs
   (.claude-plugin/marketplace.json or .agents/plugins/marketplace.json), or onboarding a skill.
-  Enforces the talon-<name> repo naming convention, the dual manifests + shared SKILL.md, keeping
-  BOTH marketplace catalogs in sync, semver version bumping + git tagging, and raising every change
-  as a pull request.
+  Covers plugin naming guidance, the dual manifests + shared SKILL.md, keeping BOTH marketplace
+  catalogs in sync, semver version bumping + git tagging, and raising every change as a pull
+  request.
 ---
 
 # Onboard / update a Talon marketplace plugin
@@ -56,20 +56,54 @@ fine for the other.
    the plugin repo `vX.Y.Z`, then pin both talon catalog entries to that tag. Claude Code only
    delivers updates to users when the manifest `version` changes, so the bump is what makes an
    update real — not just new commits.
-5. **Follow the repo naming convention** (below) for new plugin repos.
+5. **One stable `name` everywhere.** Use the same plugin `name` in both manifests and both catalog
+   entries. It's an identifier — Codex's plugin id and Claude Code's `/<plugin>:<skill>` namespace —
+   so choose it deliberately and avoid renaming, which breaks installs and invocations. See
+   *Naming a plugin* below for how to pick a good one.
 
-## Naming convention
+## Naming a plugin
 
-- **Plugin repository:** `talon-<name>` (kebab-case), e.g. `talon-terraform-module-steering`,
-  `talon-aws-cost-report`. The `talon-` prefix groups all marketplace plugins in the GitHub account,
-  makes them searchable, and avoids collisions. *(Existing repos created before this convention —
-  e.g. `terraform-module-steering` — are grandfathered. Rename them only if you also update the
-  `repo`/`url` in both talon catalogs, in the same PR.)*
-- **Plugin `name`** (in both manifests and both catalog entries): `<name>` **without** the `talon-`
-  prefix, e.g. `terraform-module-steering`. This keeps install/invocation names clean
-  (`/plugin install terraform-module-steering@talon`).
-- **Skill folder / `name`:** short kebab-case describing the action (`onboard-plugin`,
-  `cost-report`), not the plugin. Invocation becomes `/<plugin>:<skill>`.
+A plugin's name is its **identity, not its address**. It becomes a stable identifier — Codex's plugin
+id and Claude Code's skill namespace (`/<plugin>:<skill>`) — and the same plugin may be listed in more
+than one marketplace or used on its own. So name it for what it *does*, never for where it's hosted.
+Don't prefix it with a marketplace name (`talon-…`): that couples an independent artifact to one home
+and adds dead weight to every invocation.
+
+Aim for **concise but self-explanatory** — someone seeing only the name should be able to guess the
+plugin's purpose. Work through these questions:
+
+1. **What is the plugin's one job?** Name it after that capability or domain
+   (`terraform-module-steering`, `aws-cost-report`, `datadog-monitors`), not a vague umbrella
+   (`devtools`, `helpers`).
+2. **Could a stranger guess what it does from the name alone?** If not, make it more descriptive. If
+   it's a mouthful, cut filler — drop `-plugin`, `-tool`, `-skill`, and marketplace prefixes; they
+   carry no information.
+3. **Is it specific enough not to collide?** The name sits in a shared namespace next to other
+   plugins. Prefer `stripe-webhooks` over `payments`, `pg-migrations` over `db`.
+4. **Will it still fit if the plugin grows?** Name the *domain* so adding a second skill doesn't
+   outdate it; reserve action words for the skills inside.
+5. **Does `/<plugin>:<skill>` read naturally?** Say it aloud. Stutter like `/terraform:terraform-plan`
+   means the plugin name is doing the skill's job (or vice versa) — rebalance.
+6. **Keep the repo name the same as the plugin `name`** by default. The repo is just the plugin's
+   home; matching names make it easy to find and reference.
+
+Hard requirements the tooling needs (not style): **lowercase kebab-case**, **stable** over time
+(renaming breaks installs and invocations), and the **same `name`** in both plugin manifests and both
+catalog entries.
+
+**Grouping without coupling.** To see all your marketplace plugins at a glance, add a GitHub **topic**
+(e.g. `talon`) to each plugin repo, or keep them in a GitHub **org** — metadata that groups repos
+without baking the marketplace into the plugin's identity.
+
+**Skill names** (inside a plugin): short, action-oriented kebab-case (`onboard-plugin`,
+`create-monitor`) describing what the skill *does*, distinct from the plugin's domain name.
+
+Examples:
+- ✅ `terraform-module-steering` — domain + purpose; reads as `/terraform-module-steering:<skill>`
+- ✅ `aws-cost-report`, `datadog-monitors`, `stripe-webhooks`
+- ⚠️ `talon-terraform` — couples to the marketplace; drop the prefix
+- ⚠️ `tf`, `utils` — too terse/generic to convey purpose or avoid collisions
+- ⚠️ `terraform-module-steering-plugin` — `-plugin` is filler
 
 ## Before you start
 

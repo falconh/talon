@@ -17,7 +17,7 @@
     {
       "id": 3,
       "prompt": "What should I name the repo for a new Datadog monitors plugin, and what do I need in it before it can go on talon?",
-      "expected_output": "Repo name talon-datadog-monitors (talon-<name> convention); plugin name datadog-monitors (no prefix). Requires both .claude-plugin/plugin.json and .codex-plugin/plugin.json, skills/<skill>/SKILL.md with both name and description, a version, and a vX.Y.Z tag to pin from talon. All changes via PR.",
+      "expected_output": "Suggests a concise, purpose-reflecting name like datadog-monitors via the naming thought process (no marketplace prefix; repo name == plugin name; kebab-case; domain-named so it survives growth). Notes grouping via a GitHub topic instead of a prefix. Requires both .claude-plugin/plugin.json and .codex-plugin/plugin.json, skills/<skill>/SKILL.md with both name and description, a version, and a vX.Y.Z tag to pin from talon. All changes via PR.",
       "files": []
     }
   ]
