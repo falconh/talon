@@ -1,16 +1,16 @@
 ---
 name: onboard-plugin
 description: >-
-  Onboard a NEW plugin into the Talon plugin marketplace (github.com/falconh/talon), or RELEASE
-  AN UPDATE to a plugin already listed there, with correct dual Claude Code + Codex support. Use
-  this WHENEVER the user wants to add, list, publish, or onboard a plugin/skill to Talon; update,
-  bump, re-pin, or cut a release of a plugin in Talon; make a plugin work with both Claude Code and
-  Codex; or asks about Talon's structure, how to name a plugin, or the release/version
-  process — even if they don't say "Talon" explicitly but reference the marketplace, its catalogs
-  (.claude-plugin/marketplace.json or .agents/plugins/marketplace.json), or onboarding a skill.
-  Covers plugin naming guidance, the dual manifests + shared SKILL.md, keeping BOTH marketplace
-  catalogs in sync, semver version bumping + git tagging, and raising every change as a pull
-  request.
+  Use this when the user has a plugin and wants it listed in a plugin marketplace, or wants to ship
+  a new version of one already listed. Concretely: getting a plugin (including a freshly pushed repo)
+  into the marketplace catalog so it installs from both Claude Code and Codex; cutting a release by
+  bumping the plugin's version, tagging it, and pinning or re-pinning its catalog entry to that tag
+  or the latest release; reconciling the Claude Code and Codex catalogs after they drift or were
+  hand-edited apart; and explaining how versioning, tagging, and pinning work for marketplace
+  plugins. Default marketplace is Talon (github.com/falconh/talon) — assume it when the user only
+  says "the marketplace" or "my marketplace," and confirm if another is named. Not for installing or
+  using a plugin, building a marketplace from scratch, writing a standalone skill, or debugging a
+  plugin at runtime.
 ---
 
 # Onboard / update a Talon marketplace plugin
