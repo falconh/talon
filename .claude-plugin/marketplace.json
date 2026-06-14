@@ -28,6 +28,16 @@
       "version": "1.1.0"
     },
     {
+      "name": "x-twitter-scraper",
+      "source": {
+        "source": "github",
+        "repo": "Xquik-dev/x-twitter-scraper",
+        "ref": "v2.4.16"
+      },
+      "description": "Xquik X data automation skill with REST API, MCP, webhooks, SDKs, extraction workflows, and confirmation-gated actions.",
+      "version": "2.4.16"
+    },
+    {
       "name": "talon-onboarding",
       "source": "./plugins/talon-onboarding",
       "description": "Maintainer skill: guides onboarding and updating plugins on the Talon marketplace with dual Claude Code + Codex support, plugin naming guidance, semver version bumping + tagging, and a PR-only workflow.",

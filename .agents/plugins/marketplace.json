@@ -30,6 +30,19 @@
       "category": "Development"
     },
     {
+      "name": "x-twitter-scraper",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Xquik-dev/x-twitter-scraper.git",
+        "ref": "v2.4.16"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Data"
+    },
+    {
       "name": "talon-onboarding",
       "source": {
         "source": "local",
