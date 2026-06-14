@@ -6,6 +6,16 @@ and [Codex](https://developers.openai.com/codex)** from a single source of truth
 
 One repo, two marketplaces, the same skills.
 
+## Plugins in this marketplace
+
+| Plugin | What it does | Source |
+| --- | --- | --- |
+| `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
+| `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
+
+Plugins can live **in this repo** (local source) or **in their own repo** (remote
+git source); both Claude Code and Codex resolve either kind from the catalogs.
+
 ## Install
 
 ### Claude Code
