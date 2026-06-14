@@ -11,7 +11,7 @@ One repo, two marketplaces, the same skills.
 | Plugin | What it does | Source |
 | --- | --- | --- |
 | `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
-| `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
+| `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.1.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
 
 Plugins can live **in this repo** (local source) or **in their own repo** (remote
 git source); both Claude Code and Codex resolve either kind from the catalogs.
