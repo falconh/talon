@@ -1,0 +1,25 @@
+{
+  "name": "talon-onboarding",
+  "version": "0.1.0",
+  "description": "Maintainer skill for the Talon marketplace: guides onboarding a new plugin and releasing updates with dual Claude Code + Codex support, the talon-<name> repo naming convention, semver version bumping + tagging, and a PR-only change workflow.",
+  "author": {
+    "name": "falconh"
+  },
+  "license": "MIT",
+  "keywords": [
+    "talon",
+    "marketplace",
+    "plugin",
+    "onboarding",
+    "claude-code",
+    "codex",
+    "release",
+    "semver"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Talon Onboarding",
+    "shortDescription": "Onboard and update plugins on the Talon marketplace.",
+    "category": "Development"
+  }
+}
