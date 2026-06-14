@@ -144,8 +144,10 @@ one as you go rather than reproducing JSON from memory.
    no changes — only the manifests.
 
 3. **Choose the source type.** Remote (its own repo, recommended for real plugins) or local
-   (vendored under `talon/plugins/<name>/`). For remote, make sure a release tag exists (Flow B
-   step 3) so you can pin to it.
+   (vendored under `talon/plugins/<name>/`). For remote, use the **HTTPS `url` source**, not the
+   `github` shorthand — the shorthand makes Claude Code clone over SSH and fails to install for
+   anyone without a GitHub SSH key (see `references/templates.md`). Make sure a release tag exists
+   (Flow B step 3) so you can pin to it.
 
 4. **Add entries to BOTH catalogs (a PR on talon).** Add a plugin entry to
    `.claude-plugin/marketplace.json` and a matching entry to `.agents/plugins/marketplace.json`,
@@ -183,7 +185,9 @@ Use this whenever a plugin's content changes, or you are adding Codex support, o
 
 Run the bundled validator against the talon checkout — it confirms both catalogs parse, every plugin
 is present in **both** catalogs, local plugins have both manifests and dual-valid skills, and remote
-entries are pinned to a tag (not a bare branch):
+entries are pinned to a tag (not a bare branch) and use an HTTPS (not SSH) source. Treat an
+SSH-prone-source warning as blocking — it means the plugin will fail to install for users without a
+GitHub SSH key:
 
 ```bash
 python3 skills/onboard-plugin/scripts/validate_talon.py --root .

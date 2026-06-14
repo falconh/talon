@@ -83,6 +83,26 @@ def source_ref(source):
     return source.get("ref") if isinstance(source, dict) else None
 
 
+def ssh_prone(source):
+    """Return a reason string if a remote source would clone over SSH, else None.
+
+    Claude Code's `github` shorthand and any `git@`/`ssh://` URL clone the plugin
+    over SSH with no HTTPS fallback, so installing fails with
+    `git@github.com: Permission denied (publickey)` for anyone without a GitHub
+    SSH key — which is most people installing a public plugin. Prefer an explicit
+    https:// `url` source (a public repo needs no credentials over HTTPS).
+    """
+    if not isinstance(source, dict):
+        return None
+    if source.get("source") == "github":
+        return ('uses the "github" shorthand, which clones over SSH (git@github.com) with no HTTPS '
+                'fallback; use {"source":"url","url":"https://….git","ref":…} for public plugins')
+    url = str(source.get("url", ""))
+    if url.startswith("git@") or url.startswith("ssh://"):
+        return f"uses an SSH clone URL ({url}); use an https:// URL for public plugins"
+    return None
+
+
 def check_local_plugin(root: str, name: str) -> None:
     pdir = os.path.join(root, "plugins", name)
     if not os.path.isdir(pdir):
@@ -149,6 +169,9 @@ def main() -> int:
                     err(f"[{name}] remote {tool} source has no 'ref' (pin to a vX.Y.Z tag)")
                 elif not TAG_RE.match(str(ref)):
                     warn(f"[{name}] remote {tool} ref '{ref}' is not a vX.Y.Z tag (branch pin?)")
+                ssh = ssh_prone(src)
+                if ssh:
+                    warn(f"[{name}] remote {tool} source {ssh}")
             if "version" not in claude_plugins[name]:
                 warn(f"[{name}] Claude remote entry has no 'version' (recommended, match the tag)")
         else:
