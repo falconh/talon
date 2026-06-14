@@ -26,7 +26,7 @@ A plugin is described twice (once per tool) but its behaviour lives once:
 
 | | Claude Code | Codex |
 | --- | --- | --- |
-| Marketplace catalog (in `talon/`) | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` |
+| Marketplace catalog (in the marketplace repo) | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` |
 | Plugin manifest (in the plugin) | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` |
 | Skills (shared, one copy) | `skills/<skill>/SKILL.md` | same file (`"skills": "./skills/"`) |
 | Add the marketplace | `/plugin marketplace add falconh/talon` | `codex plugin marketplace add falconh/talon` |
@@ -108,6 +108,17 @@ Examples:
 ## Before you start
 
 Confirm the GitHub CLI is ready: `gh auth status` (needs `repo` scope). All steps below use `gh`.
+
+**Confirm the target marketplace — do not assume.** This skill defaults to **Talon**
+(`falconh/talon`), but a plugin is not owned by any one marketplace. If the request does not name a
+marketplace — e.g. "publish my plugin to Claude Code and Codex" or "make my plugin work in Codex so I
+can list it" — **ask** whether they mean Talon or a different marketplace, and get that marketplace's
+repo/path. Don't silently default to Talon. The entire workflow below is identical for any dual
+Claude Code + Codex marketplace; only the catalog *location* changes. Every such marketplace keeps
+its catalogs at the same relative paths in its repo root (`.claude-plugin/marketplace.json` and
+`.agents/plugins/marketplace.json`), so just target the confirmed marketplace's repo for the catalog
+PR. The plugin repo, its manifests, naming, versioning, and tagging are unaffected by which
+marketplace lists it.
 
 Decide which flow you are in:
 - **Flow A — onboard a new plugin** (it is not yet in talon's catalogs).
