@@ -20,8 +20,8 @@
     {
       "name": "terraform-module-steering",
       "source": {
-        "source": "github",
-        "repo": "falconh/terraform-module-steering",
+        "source": "url",
+        "url": "https://github.com/falconh/terraform-module-steering.git",
         "ref": "v1.1.0"
       },
       "description": "Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (greenfield + brownfield): per-service CIS/FSBP research, wrap-upstream, minimal inputs, hardcoded non-overridable security, docs + verification pipeline.",

@@ -78,16 +78,25 @@ Add to the `plugins` array of `.claude-plugin/marketplace.json`.
 }
 ```
 
-**Remote source** (plugin in its own repo) — pin `ref` to the release tag:
+**Remote source** (plugin in its own repo) — use the `url` source with the explicit **HTTPS** clone
+URL, and pin `ref` to the release tag:
 
 ```json
 {
   "name": "<name>",
-  "source": { "source": "github", "repo": "falconh/<repo>", "ref": "v<X.Y.Z>" },
+  "source": { "source": "url", "url": "https://github.com/falconh/<repo>.git", "ref": "v<X.Y.Z>" },
   "description": "<one-line description>",
   "version": "<X.Y.Z>"
 }
 ```
+
+> **Use `url` + HTTPS, not the `github` shorthand, for public plugins.** The
+> `{ "source": "github", "repo": "owner/repo" }` form makes Claude Code clone the plugin over **SSH**
+> (`git@github.com:…`) when installing, with no HTTPS fallback — so it fails with
+> `Permission denied (publickey)` for anyone who hasn't configured a GitHub SSH key (which most
+> users installing a public plugin haven't). The explicit `https://…​.git` URL clones over HTTPS and
+> needs no credentials for a public repo. This mirrors the Codex `url` entry below, so both catalogs
+> resolve the same way.
 
 ## Codex catalog entry
 
