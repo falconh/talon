@@ -21,7 +21,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/falconh/terraform-module-steering.git",
-        "ref": "v1.1.0"
+        "ref": "v1.2.0"
       },
       "policy": {
         "installation": "AVAILABLE",
