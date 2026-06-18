@@ -16,3 +16,20 @@ class TestRegistry(unittest.TestCase):
 
     def test_missing_file_returns_empty(self):
         self.assertEqual(load_talon_registry("/no/such/file.json"), {})
+
+
+class TestResolveRepo(unittest.TestCase):
+    def test_resolve_repo_from_manifest(self):
+        import json
+        import tempfile
+        from registry import resolve_repo
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, ".claude-plugin"))
+            with open(os.path.join(d, ".claude-plugin", "plugin.json"), "w") as fh:
+                json.dump({"repository": "https://github.com/falconh/talon.git"}, fh)
+            self.assertEqual(resolve_repo(d), "falconh/talon")
+
+    def test_resolve_repo_empty_or_missing(self):
+        from registry import resolve_repo
+        self.assertIsNone(resolve_repo(""))
+        self.assertIsNone(resolve_repo("/no/such/dir"))

@@ -17,6 +17,7 @@ class EvidenceRecord:
     captured_at: str
     transcript_path: str
     processed: bool = False
+    repo: str = ""
 
 
 def _store_path(store_dir: str, plugin: str) -> str:

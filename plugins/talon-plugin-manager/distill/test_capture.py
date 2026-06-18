@@ -49,6 +49,22 @@ class TestCapture(unittest.TestCase):
             payload = {"session_id": "s3", "transcript_path": UNDER, "cwd": "/x", "hook_event_name": "SessionEnd"}
             self.assertEqual(run_capture(payload, store, ip), [])
 
+    def test_records_repo_and_skill_ids(self):
+        import json as _json
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            inst = os.path.join(d, "inst")
+            os.makedirs(os.path.join(inst, ".claude-plugin"))
+            with open(os.path.join(inst, ".claude-plugin", "plugin.json"), "w") as fh:
+                _json.dump({"repository": "https://github.com/falconh/talon"}, fh)
+            ip = installed_with(d, {"talon-plugin-manager": inst})
+            payload = {"session_id": "s", "transcript_path": USAGE, "cwd": "/x", "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            from evidence import read_evidence
+            rec = read_evidence(store, "talon-plugin-manager")[0]
+            self.assertEqual(rec["repo"], "falconh/talon")                       # captured at capture time
+            self.assertEqual(rec["skills_used"], ["talon-plugin-manager:onboard-plugin"])  # real skill id
+
     def test_threshold_sets_ready_marker(self):
         with tempfile.TemporaryDirectory() as d:
             store = os.path.join(d, "store")

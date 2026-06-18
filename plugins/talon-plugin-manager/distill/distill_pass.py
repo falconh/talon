@@ -5,36 +5,43 @@ record. Also a `close` command to mark a plugin's processed sessions and compact
 from __future__ import annotations
 import json
 import os
-import re
 import sys
 
-from registry import load_talon_registry
+from registry import load_talon_registry, resolve_repo
 from evidence import EVIDENCE_DIR, read_evidence
 from pass_state import ready_plugins, mark_processed, clear_ready, compact_processed
 from trajectory import build_trajectory
 
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
-_GH_RE = re.compile(r"github\.com[/:]([^/\s]+)/([^/\s]+)")
 
 
-def resolve_repo(install_path: str) -> str | None:
-    """Resolve <owner>/<repo> from the plugin's manifest (repository/homepage)."""
-    for fname in (".claude-plugin/plugin.json", "plugin.json"):
-        try:
-            with open(os.path.join(install_path, fname), encoding="utf-8") as fh:
-                cfg = json.load(fh)
-        except (OSError, json.JSONDecodeError):
+def resolve_repo_by_skill(skills_used: list[str], registry: dict[str, str]) -> str | None:
+    """Reverse-lookup: find the installed plugin that *provides* a used skill
+    (`<plugin>:<skill>`) and resolve its repo. Survives plugin renames where the
+    evidence's plugin name no longer matches an installed entry."""
+    for sid in skills_used:
+        skill_name = sid.split(":", 1)[1] if ":" in sid else sid
+        if not skill_name:
             continue
-        for key in ("repository", "homepage"):
-            url = cfg.get(key)
-            if isinstance(url, str):
-                m = _GH_RE.search(url)
-                if m:
-                    repo = m.group(2)
-                    if repo.endswith(".git"):
-                        repo = repo[:-4]
-                    return f"{m.group(1)}/{repo}"
+        for install_path in registry.values():
+            if install_path and os.path.isdir(os.path.join(install_path, "skills", skill_name)):
+                repo = resolve_repo(install_path)
+                if repo:
+                    return repo
     return None
+
+
+def _packet_repo(install_path: str, records: list[dict], registry: dict[str, str]) -> str | None:
+    """3-tier repo resolution: (1) recorded at capture time, (2) registry install
+    path by plugin name, (3) reverse-lookup via the skills that fired."""
+    for r in records:
+        if r.get("repo"):
+            return r["repo"]
+    repo = resolve_repo(install_path)
+    if repo:
+        return repo
+    skills = [s for r in records for s in (r.get("skills_used") or [])]
+    return resolve_repo_by_skill(skills, registry)
 
 
 def build_packet(store_dir: str, registry: dict[str, str], clip: int = 200) -> dict:
@@ -52,7 +59,7 @@ def build_packet(store_dir: str, registry: dict[str, str], clip: int = 200) -> d
         } for r in records]
         plugins.append({
             "plugin": plugin,
-            "repo": resolve_repo(install_path) if install_path else None,
+            "repo": _packet_repo(install_path, records, registry),
             "domain_declared": bool(install_path) and os.path.exists(os.path.join(install_path, "distill.json")),
             "unprocessed": len(records),
             "sessions": sessions,

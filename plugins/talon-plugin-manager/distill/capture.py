@@ -8,7 +8,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-from registry import load_talon_registry
+from registry import load_talon_registry, resolve_repo
 from transcript import parse_transcript
 from detect import detect_usage, load_domain_map, under_triggered
 from friction import scan_friction
@@ -54,14 +54,18 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
     captured_at = datetime.now(timezone.utc).isoformat()
     wrote: list[str] = []
     for plugin in sorted(used | under):
+        skills_used = sorted(s for c in parsed.tool_calls if c.name == "Skill"
+                             for s in [str(c.input.get("skill", ""))]
+                             if s.split(":", 1)[0] == plugin)
         rec = EvidenceRecord(
             session_id=payload.get("session_id", ""),
             plugin=plugin,
             kind="usage" if plugin in used else "under_trigger",
-            skills_used=sorted(used & {plugin}),
+            skills_used=skills_used,
             friction=friction,
             captured_at=captured_at,
             transcript_path=payload.get("transcript_path", ""),
+            repo=resolve_repo(registry.get(plugin, "")) or "",
         )
         append_evidence(store_dir, rec)
         wrote.append(plugin)

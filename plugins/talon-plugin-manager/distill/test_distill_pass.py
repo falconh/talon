@@ -75,3 +75,27 @@ class TestBuildPacket(unittest.TestCase):
         with tempfile.TemporaryDirectory() as store:
             append_evidence(store, ev("s1"))  # no ready marker
             self.assertEqual(build_packet(store, {"p": ""})["plugins"], [])
+
+    def test_packet_repo_prefers_recorded(self):
+        with tempfile.TemporaryDirectory() as store:
+            rec = EvidenceRecord("s1", "p", "usage", [], {}, "t", USAGE)
+            rec.repo = "owner/recorded"
+            append_evidence(store, rec)
+            mark_ready(store, "p")
+            packet = build_packet(store, {"p": "/no/install/path"})  # registry miss
+            self.assertEqual(packet["plugins"][0]["repo"], "owner/recorded")
+
+    def test_packet_repo_reverse_lookup_by_skill(self):
+        # plugin name not installed (rename), but a used skill maps to an installed plugin's dir
+        with tempfile.TemporaryDirectory() as store, tempfile.TemporaryDirectory() as inst:
+            os.makedirs(os.path.join(inst, ".claude-plugin"))
+            os.makedirs(os.path.join(inst, "skills", "onboard-plugin"))
+            with open(os.path.join(inst, ".claude-plugin", "plugin.json"), "w") as fh:
+                json.dump({"repository": "https://github.com/falconh/talon"}, fh)
+            rec = EvidenceRecord("s1", "talon-plugin-manager", "usage",
+                                 ["talon-plugin-manager:onboard-plugin"], {}, "t", USAGE)
+            append_evidence(store, rec)
+            mark_ready(store, "talon-plugin-manager")
+            registry = {"talon-plugin-manager": "", "talon-onboarding": inst}  # renamed name absent
+            packet = build_packet(store, registry)
+            self.assertEqual(packet["plugins"][0]["repo"], "falconh/talon")
