@@ -4,6 +4,7 @@ plugin used (or under-triggered) in the just-ended session. No LLM, no network."
 from __future__ import annotations
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 
@@ -17,7 +18,28 @@ from batch import should_run_batch, mark_ready
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
 
 
-def run_capture(payload: dict, store_dir: str, installed_plugins_path: str, n_threshold: int = 5) -> list[str]:
+def _default_spawner(plugin: str) -> None:
+    """Best-effort detached `claude -p` distill pass for one plugin. Never raises."""
+    env = dict(os.environ)
+    env["TALON_DISTILL_CHILD"] = "1"
+    prompt = (
+        f"Use the talon-plugin-manager distill-plugin skill to process the distillation "
+        f"evidence queue for plugin '{plugin}'. Process only the ready queue, then exit."
+    )
+    try:
+        subprocess.Popen(
+            ["claude", "-p", prompt, "--permission-mode", "acceptEdits"],
+            env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+    except (OSError, ValueError):
+        pass
+
+
+def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
+                n_threshold: int = 5, spawner=None) -> list[str]:
+    if os.environ.get("TALON_DISTILL_CHILD") == "1":
+        return []  # never capture inside an auto-spawned distill session (no recursion)
     registry = load_talon_registry(installed_plugins_path)
     if not registry:
         return []
@@ -45,6 +67,8 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str, n_th
         wrote.append(plugin)
         if should_run_batch(store_dir, plugin, n_threshold):
             mark_ready(store_dir, plugin)
+            if spawner is not None:
+                spawner(plugin)
     return wrote
 
 
@@ -54,7 +78,7 @@ def main() -> int:
     except (json.JSONDecodeError, ValueError):
         return 0  # never block session end
     try:
-        run_capture(payload, EVIDENCE_DIR, DEFAULT_INSTALLED)
+        run_capture(payload, EVIDENCE_DIR, DEFAULT_INSTALLED, spawner=_default_spawner)
     except Exception:
         return 0  # capture is best-effort; never raise into the hook
     return 0
