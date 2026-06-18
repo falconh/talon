@@ -12,17 +12,17 @@ One repo, two marketplaces, the same skills.
 | --- | --- | --- |
 | `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
 | `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.1.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
-| `talon-onboarding` | Maintainer skill that guides onboarding and updating plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow). | local (`plugins/talon-onboarding`) |
+| `talon-plugin-manager` | Maintainer plugin: onboard and release plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow), plus distill real session usage of Talon plugins into improvement findings. | local (`plugins/talon-plugin-manager`) |
 
 Plugins can live **in this repo** (local source) or **in their own repo** (remote
 git source); both Claude Code and Codex resolve either kind from the catalogs.
 
 ### Maintaining this marketplace
 
-Onboarding a new plugin or cutting a release? Use the **`talon-onboarding`** plugin's
+Onboarding a new plugin or cutting a release? Use the **`talon-plugin-manager`** plugin's
 `onboard-plugin` skill — it gives naming guidance, encodes the dual-manifest requirement, the
 bump → tag → pin release flow, and the PR-only rule. Validate any change with
-`python3 plugins/talon-onboarding/skills/onboard-plugin/scripts/validate_talon.py --root .`
+`python3 plugins/talon-plugin-manager/skills/onboard-plugin/scripts/validate_talon.py --root .`
 
 ## Install
 

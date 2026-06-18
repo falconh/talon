@@ -48,7 +48,7 @@ git checkout -b <topic-branch>
 #   .agents/plugins/marketplace.json  -> add/replace the matching entry (ref)
 #   README.md                         -> update the plugins table if present
 
-python3 plugins/talon-onboarding/skills/onboard-plugin/scripts/validate_talon.py --root .
+python3 plugins/talon-plugin-manager/skills/onboard-plugin/scripts/validate_talon.py --root .
 
 git add -A
 git commit -m "<summary>"
