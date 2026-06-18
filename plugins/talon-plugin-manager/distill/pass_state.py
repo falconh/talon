@@ -46,6 +46,32 @@ def mark_processed(store_dir: str, plugin: str, session_ids: list[str]) -> int:
     return changed
 
 
+def compact_processed(store_dir: str, plugin: str) -> int:
+    """Drop already-processed records, keeping only unprocessed ones. Returns the
+    number dropped. Keeps the append-only store from growing without bound."""
+    path = os.path.join(store_dir, f"{plugin}.jsonl")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            raw = [ln for ln in fh.read().splitlines() if ln.strip()]
+    except OSError:
+        return 0
+    kept: list[str] = []
+    dropped = 0
+    for ln in raw:
+        try:
+            r = json.loads(ln)
+        except json.JSONDecodeError:
+            kept.append(ln)
+            continue
+        if r.get("processed", False):
+            dropped += 1
+        else:
+            kept.append(json.dumps(r, ensure_ascii=False))
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(kept) + ("\n" if kept else ""))
+    return dropped
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         return 1
@@ -56,6 +82,8 @@ def main(argv: list[str]) -> int:
         print(mark_processed(rest[0], rest[1], rest[2].split(",") if len(rest) > 2 and rest[2] else []))
     elif cmd == "clear-ready":
         clear_ready(rest[0], rest[1])
+    elif cmd == "compact":
+        print(compact_processed(rest[0], rest[1]))
     else:
         return 1
     return 0

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from evidence import EvidenceRecord, append_evidence, read_evidence
 from batch import mark_ready
-from pass_state import ready_plugins, mark_processed, clear_ready
+from pass_state import ready_plugins, mark_processed, clear_ready, compact_processed
 
 
 def rec(sid):
@@ -38,3 +38,18 @@ class TestPassState(unittest.TestCase):
             append_evidence(d, rec("s1"))
             mark_processed(d, "p", ["s1"])
             self.assertEqual(mark_processed(d, "p", ["s1"]), 0)
+
+    def test_compact_drops_processed_keeps_unprocessed(self):
+        with tempfile.TemporaryDirectory() as d:
+            append_evidence(d, rec("s1"))
+            append_evidence(d, rec("s2"))
+            append_evidence(d, rec("s3"))
+            mark_processed(d, "p", ["s1", "s2"])
+            dropped = compact_processed(d, "p")
+            self.assertEqual(dropped, 2)
+            remaining = [r["session_id"] for r in read_evidence(d, "p")]
+            self.assertEqual(remaining, ["s3"])
+
+    def test_compact_missing_is_zero(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(compact_processed(d, "nope"), 0)
