@@ -19,6 +19,5 @@
     "release",
     "semver"
   ],
-  "skills": "./skills",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills"
 }
