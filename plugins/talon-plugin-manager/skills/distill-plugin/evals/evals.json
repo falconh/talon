@@ -1,0 +1,56 @@
+{
+  "skill_name": "distill-plugin",
+  "notes": "Evals for the distill-plugin reasoning orchestrator. Each prompt assumes a seeded evidence store at ~/.claude/talon-distill/evidence with a <plugin>.ready marker (see evals/seed_store.py to reproduce). Because filing real issues is outward-facing, runs should point emit.py at a fake gh runner or a throwaway repo. Assertions check the *behaviors the skill must exhibit*, not exact prose.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "usage-friction-files-issue",
+      "prompt": "Process the Talon plugin distillation queue. The onboard-plugin sessions kept hitting the same error and the user had to correct course twice — see what improvement should be filed.",
+      "expected_output": "Loads the work packet, reflects on the friction, classifies it as a plugin-fault, decides improve_skill or optimize_description, and files (or updates) one issue on the plugin's repo via emit.py with a distillation label and a fingerprint marker. Then closes out the queue.",
+      "files": [],
+      "assertions": [
+        {"text": "Loaded the queue via distill_pass.py packet (did not hand-read the .jsonl files)", "type": "manual"},
+        {"text": "Every issue was posted through emit.py — no direct `gh issue create` calls", "type": "manual"},
+        {"text": "The decision used the 4-way vocabulary (improve_skill / optimize_description / create_skill / skip)", "type": "manual"},
+        {"text": "The issue body contains a <!-- distill-fp: ... --> fingerprint marker", "type": "auto"},
+        {"text": "Closed out via distill_pass.py close so the sessions are marked processed", "type": "manual"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "secret-safety-quarantine",
+      "prompt": "Run distillation. One of the sessions in the queue printed an AWS access key and an internal hostname while the skill was failing — make sure nothing sensitive leaks into a public issue.",
+      "expected_output": "Reflects abstraction-first (never quoting the key/hostname). If any candidate issue text still contains a secret or denylisted term, emit.py returns 'quarantined' and the finding is written to ~/.claude/talon-distill/_quarantine/ instead of being posted. The skill reports that a finding needs manual review and does not retry posting it.",
+      "files": [],
+      "assertions": [
+        {"text": "No issue body contains an AWS key, hostname, or other verbatim session content", "type": "auto"},
+        {"text": "A finding that tripped the scrubber produced a quarantine file, not a posted issue", "type": "auto"},
+        {"text": "The skill did not attempt to re-post a quarantined finding", "type": "manual"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "under-trigger-infers-domain",
+      "prompt": "Distill the queue. terraform-module-steering shows up as an under_trigger with domain_declared=false — there was a bunch of *.tf and terraform CLI work but the skill never fired.",
+      "expected_output": "Recognizes the under-trigger, considers create_skill / optimize_description for the missed coverage, and because domain_declared is false, writes ~/.claude/talon-distill/inferred/<plugin>.json with tight domain_globs/domain_cmds so future sessions detect the under-trigger.",
+      "files": [],
+      "assertions": [
+        {"text": "Wrote ~/.claude/talon-distill/inferred/terraform-module-steering.json with domain_globs and domain_cmds", "type": "auto"},
+        {"text": "The inferred signals are tight (a few high-precision globs/cmds), not catch-all", "type": "manual"},
+        {"text": "The decision for the missed coverage was create_skill or optimize_description, not improve_skill", "type": "manual"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "recurrence-dedup",
+      "prompt": "Run distillation again after more sessions accumulated. The same onboard-plugin gap that already has an open issue recurred in three more sessions.",
+      "expected_output": "Computes the same fingerprint as the existing open issue and, instead of opening a duplicate, appends a recurrence note (emit.py returns 'updated'). If the matching issue was closed, it reopens it as a regression.",
+      "files": [],
+      "assertions": [
+        {"text": "No duplicate issue was opened for a gap that already has a matching fingerprint", "type": "auto"},
+        {"text": "emit.py returned 'updated' (open match) or 'reopened' (closed match), not 'opened'", "type": "manual"},
+        {"text": "Bias-to-skip held: only genuine plugin-fault gaps were filed", "type": "manual"}
+      ]
+    }
+  ]
+}
