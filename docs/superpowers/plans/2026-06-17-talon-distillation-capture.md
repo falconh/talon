@@ -1223,3 +1223,25 @@ git commit -m "feat(distill): SessionEnd capture CLI + plugin hook wiring"
 **Type consistency:** `ToolCall` / `ParsedTranscript` (Task 3) are consumed with the same field names in Tasks 4–5; `EvidenceRecord` field order (Task 6) matches its positional construction in Tasks 7–8 tests; `FrictionHints.as_dict()` (Task 5) feeds `EvidenceRecord.friction` (Task 6); `load_talon_registry -> dict[name,path]` (Task 2) is consumed as `set(registry)` + `load_domain_map(registry)` (Tasks 4, 8). ✓
 
 **Known risk:** the exact plugin `hooks.json` schema and `SessionEnd` stdin fields are confirmed at execution time (Task 8 Step 1) rather than assumed; the CLI is written as a testable pure function (`run_capture`) so its logic is verified independently of the hook wiring.
+
+---
+
+## Implementation Notes (delta vs plan as written)
+
+Two corrections were made during execution; the committed code reflects these, not the
+literal Task text above:
+
+1. **No `hooks` key in `plugin.json`** (Tasks 1 & 8). The schema check in Task 8 Step 1
+   was grounded against the installed `superpowers` plugin: its `plugin.json` has **no**
+   `hooks` key — Claude Code auto-loads `hooks/hooks.json` by convention. So the
+   `"hooks": "./hooks/hooks.json"` line shown in Task 1 Step 2 was **removed** to match the
+   canonical pattern (keeping it risked double-registration). The confirmed `hooks.json`
+   shape is `{"hooks":{"SessionEnd":[{"hooks":[{"type":"command","command":...,"async":true}]}]}}`
+   with `${CLAUDE_PLUGIN_ROOT}`; the hook command runs `async` so it never delays session end.
+
+2. **`test_not_under_triggered_when_skill_used` fixed** (Task 4). As written, the test
+   passed the under-trigger transcript (which contains no `Skill` call) with
+   `registry_names={tms}` and expected an empty set — but registry membership is not the
+   same as the skill firing, so `detect_usage` (correctly) found nothing to subtract. The
+   test now appends an actual `Skill` ToolCall for the plugin before asserting it is no
+   longer under-triggered. The implementation was correct; only the test was wrong.
