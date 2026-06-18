@@ -27,3 +27,24 @@ class TestIssues(unittest.TestCase):
         self.assertEqual(url, "https://github.com/o/r/issues/9")
         self.assertIn("--label", r.calls[0])
         self.assertIn("distillation", r.calls[0])
+
+    def test_dry_run_never_shells_out_and_logs(self):
+        import os
+        import tempfile
+        from issues import default_runner
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "gh.log")
+            os.environ["TALON_DISTILL_DRY_RUN"] = "1"
+            os.environ["TALON_DISTILL_DRY_LOG"] = log
+            try:
+                code, out, _ = default_runner(["gh", "issue", "create", "--title", "x"])
+                self.assertEqual(code, 0)
+                self.assertIn("github.com", out)               # canned url, no network
+                _, list_out, _ = default_runner(["gh", "issue", "list", "--repo", "o/r"])
+                self.assertEqual(list_out.strip(), "[]")        # no existing => no dedup surprises
+                with open(log) as fh:
+                    logged = fh.read()
+                self.assertIn("issue create", logged)           # the gh call was recorded, not run
+            finally:
+                del os.environ["TALON_DISTILL_DRY_RUN"]
+                del os.environ["TALON_DISTILL_DRY_LOG"]

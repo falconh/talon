@@ -89,6 +89,7 @@ The store dir `<STORE>` is `~/.claude/talon-distill/evidence`.
    }
    ```
    Then: `python3 ${CLAUDE_PLUGIN_ROOT}/distill/emit.py --finding-file <finding.json>`.
+   (To rehearse without posting, set `TALON_DISTILL_DRY_RUN=1` — `gh` calls are logged, not run.)
    Read the printed status: `opened` / `updated` / `reopened` / `quarantined`. If `quarantined`,
    tell the user a finding needs manual review (the scrubber found something) — do NOT try to
    re-post it. If the packet's `repo` is `null`, you could not resolve the plugin's repo — skip
