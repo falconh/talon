@@ -1,15 +1,17 @@
 ---
 name: distill-plugin
 description: >-
-  Use when distilling real session usage of Talon-marketplace plugins into improvement findings —
-  processing the captured distillation evidence queue and filing redacted GitHub issues on each
-  plugin's own repo. This is also the entry point the SessionEnd auto-pass invokes once a plugin's
-  evidence crosses the batch threshold. Covers reviewing accumulated evidence, building deterministic
-  session trajectories, reflecting (abstraction-first) on where a plugin helped or hurt, classifying
-  whether friction was the plugin's, the agent's, or the environment's fault, deciding among
-  improve_skill / optimize_description / create_skill / skip, redacting secrets as a hard gate, and
-  opening/updating/reopening the matching issue. Not for onboarding or releasing a plugin (use
-  onboard-plugin), and not for authoring a brand-new skill from scratch.
+  Use when the user wants to look back at how a plugin or skill actually behaved in past sessions
+  and turn that reflection into filed fixes. Trigger phrases: "distill" or "process the
+  session-evidence queue" for a plugin (default marketplace: Talon) and open GitHub issues for
+  recurring problems; judge whether a skill helped, hurt, or gave wrong/missing/misleading guidance
+  during real use and file it as an issue on the plugin's own repo; or notice that heavy domain work
+  happened (e.g. many *.tf edits, terraform plan/apply) yet no skill fired, and decide whether one
+  should have. Keep secrets, infra details, and account IDs out of these public issues. Use this
+  whenever the ask is to grade past behavior and file what to improve — even when a specific plugin
+  or skill is named (e.g. onboard-plugin, terraform-module-steering). Not the domain task itself; not
+  listing or releasing a plugin (onboard-plugin); not authoring or editing a skill or its description
+  (skill-creator).
 ---
 
 # Distill Talon plugin usage into improvement findings
