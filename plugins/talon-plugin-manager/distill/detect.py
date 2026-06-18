@@ -8,6 +8,7 @@ import re
 from transcript import ToolCall
 
 _PATH_TOOLS = {"Edit", "Write", "Read", "NotebookEdit"}
+INFERRED_DIR = os.path.expanduser("~/.claude/talon-distill/inferred")
 
 
 def _glob_to_regex(glob: str) -> str:
@@ -52,16 +53,24 @@ def detect_usage(calls: list[ToolCall], registry_names: set[str]) -> set[str]:
     return used
 
 
-def load_domain_map(registry: dict[str, str]) -> dict[str, dict]:
+def _read_domain_cfg(path: str) -> dict | None:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+
+def load_domain_map(registry: dict[str, str], inferred_dir: str = INFERRED_DIR) -> dict[str, dict]:
+    """Domain signals per plugin. A self-declared `distill.json` in the plugin wins;
+    otherwise fall back to a cached LLM-inferred map written by the distill pass at
+    `<inferred_dir>/<plugin>.json`, so under-trigger works even for undeclared plugins."""
     out: dict[str, dict] = {}
     for plugin, install_path in registry.items():
-        if not install_path:
-            continue
-        cfg_path = os.path.join(install_path, "distill.json")
-        try:
-            with open(cfg_path, encoding="utf-8") as fh:
-                cfg = json.load(fh)
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
+        cfg = _read_domain_cfg(os.path.join(install_path, "distill.json")) if install_path else None
+        if cfg is None:
+            cfg = _read_domain_cfg(os.path.join(inferred_dir, f"{plugin}.json"))
+        if cfg is None:
             continue
         out[plugin] = {
             "globs": list(cfg.get("domain_globs") or []),

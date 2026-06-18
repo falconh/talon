@@ -38,7 +38,26 @@ class TestDetect(unittest.TestCase):
         self.assertEqual(dmap["terraform-module-steering"]["globs"], ["**/*.tf"])
 
     def test_load_domain_map_skips_missing(self):
-        self.assertEqual(load_domain_map({"x": "/no/such/dir"}), {})
+        self.assertEqual(load_domain_map({"x": "/no/such/dir"}, inferred_dir="/no/such/dir"), {})
+
+    def test_load_domain_map_uses_cached_inference_when_undeclared(self):
+        import json as _json
+        import tempfile
+        with tempfile.TemporaryDirectory() as inferred:
+            with open(os.path.join(inferred, "tms.json"), "w") as fh:
+                _json.dump({"domain_globs": ["**/*.tf"], "domain_cmds": ["terraform"]}, fh)
+            # registry plugin has NO install distill.json, but a cached inferred one exists
+            dmap = load_domain_map({"tms": "/no/such/dir"}, inferred_dir=inferred)
+            self.assertEqual(dmap["tms"]["cmds"], ["terraform"])
+
+    def test_declared_distill_json_wins_over_inferred(self):
+        import json as _json
+        import tempfile
+        with tempfile.TemporaryDirectory() as inferred:
+            with open(os.path.join(inferred, "terraform-module-steering.json"), "w") as fh:
+                _json.dump({"domain_globs": ["**/*.bogus"], "domain_cmds": ["bogus"]}, fh)
+            dmap = load_domain_map({"terraform-module-steering": FIXDIR}, inferred_dir=inferred)
+            self.assertEqual(dmap["terraform-module-steering"]["cmds"], ["terraform", "tofu"])
 
     def test_glob_matches_nested_and_bare_paths(self):
         from detect import _glob_match
