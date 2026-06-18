@@ -16,13 +16,22 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
 ]
 
 
-def scan_secrets(text: str) -> list[tuple[str, str]]:
+def scan_secrets(text: str, denylist: list[str] | None = None) -> list[tuple[str, str]]:
+    """Return (kind, match) for every secret/PII hit. `denylist` adds caller-supplied
+    proprietary terms (org names, internal hostnames) that the shape-based patterns
+    cannot know about — matched case-insensitively as substrings."""
+    text = text or ""
     hits: list[tuple[str, str]] = []
     for kind, rx in _PATTERNS:
-        for m in rx.finditer(text or ""):
+        for m in rx.finditer(text):
             hits.append((kind, m.group(0)))
+    low = text.lower()
+    for term in denylist or []:
+        term = (term or "").strip()
+        if term and term.lower() in low:
+            hits.append(("denylisted", term))
     return hits
 
 
-def is_clean(text: str) -> bool:
-    return not scan_secrets(text)
+def is_clean(text: str, denylist: list[str] | None = None) -> bool:
+    return not scan_secrets(text, denylist)

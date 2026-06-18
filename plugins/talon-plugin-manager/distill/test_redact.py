@@ -29,3 +29,15 @@ class TestRedact(unittest.TestCase):
     def test_public_ip_not_flagged_as_private(self):
         kinds = {k for k, _ in scan_secrets("8.8.8.8")}
         self.assertNotIn("private_ip", kinds)
+
+    def test_denylist_flags_org_terms_case_insensitively(self):
+        text = "The skill failed on the AcmeCorp internal cluster."
+        self.assertTrue(is_clean(text))  # no denylist => clean
+        hits = scan_secrets(text, denylist=["acmecorp", "internal.example.com"])
+        kinds = {k for k, _ in hits}
+        self.assertIn("denylisted", kinds)
+        self.assertFalse(is_clean(text, denylist=["acmecorp"]))
+
+    def test_denylist_none_or_empty_is_noop(self):
+        self.assertTrue(is_clean("plain text", denylist=None))
+        self.assertTrue(is_clean("plain text", denylist=[]))

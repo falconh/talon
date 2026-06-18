@@ -54,3 +54,11 @@ class TestEmit(unittest.TestCase):
             res = emit_finding(dirty, runner=r, quarantine_dir=q)
         self.assertEqual(res["status"], "quarantined")
         self.assertFalse(any(a[:3] == ["gh", "issue", "create"] for a in r.calls))  # never posted
+
+    def test_quarantines_on_denylisted_term(self):
+        r = FakeRunner(list_out="[]")
+        dirty = {**BASE, "body": "the AcmeCorp prod cluster broke the skill"}
+        with tempfile.TemporaryDirectory() as q:
+            res = emit_finding(dirty, runner=r, quarantine_dir=q, denylist=["AcmeCorp"])
+        self.assertEqual(res["status"], "quarantined")
+        self.assertFalse(any(a[:3] == ["gh", "issue", "create"] for a in r.calls))

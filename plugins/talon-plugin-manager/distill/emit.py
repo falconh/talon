@@ -3,6 +3,7 @@
 from __future__ import annotations
 import argparse
 import json
+import os
 import sys
 
 import issues
@@ -10,12 +11,27 @@ from fingerprint import finding_fingerprint, marker
 from quarantine import QUARANTINE_DIR, quarantine
 from redact import scan_secrets
 
+DENYLIST_FILE = os.path.expanduser("~/.claude/talon-distill/denylist.txt")
 
-def emit_finding(finding: dict, runner=issues.default_runner, quarantine_dir: str = QUARANTINE_DIR) -> dict:
+
+def _load_denylist() -> list[str]:
+    """Optional proprietary terms (org names, internal hostnames) to block, one per
+    line; blanks and #-comments ignored. Absent file => empty denylist."""
+    try:
+        with open(DENYLIST_FILE, encoding="utf-8") as fh:
+            return [ln.strip() for ln in fh if ln.strip() and not ln.lstrip().startswith("#")]
+    except OSError:
+        return []
+
+
+def emit_finding(finding: dict, runner=issues.default_runner, quarantine_dir: str = QUARANTINE_DIR,
+                 denylist: list[str] | None = None) -> dict:
+    if denylist is None:
+        denylist = _load_denylist()
     repo = finding["repo"]
     fp = finding_fingerprint(finding["plugin"], finding["decision"], finding["anchor"])
     body = finding["body"].rstrip() + "\n\n" + marker(fp)
-    hits = scan_secrets(finding.get("title", "") + "\n" + body)
+    hits = scan_secrets(finding.get("title", "") + "\n" + body, denylist)
     if hits:
         path = quarantine(
             {**finding, "fingerprint": fp, "secret_kinds": sorted({k for k, _ in hits})},
