@@ -39,3 +39,16 @@ class TestDetect(unittest.TestCase):
 
     def test_load_domain_map_skips_missing(self):
         self.assertEqual(load_domain_map({"x": "/no/such/dir"}), {})
+
+    def test_glob_matches_nested_and_bare_paths(self):
+        from detect import _glob_match
+        self.assertTrue(_glob_match("infra/main.tf", "**/*.tf"))
+        self.assertTrue(_glob_match("main.tf", "**/*.tf"))           # ** matches zero dirs
+        self.assertTrue(_glob_match("a/b/c/x.tf", "**/*.tf"))
+        self.assertFalse(_glob_match("infra/main.tfvars", "**/*.tf"))
+        self.assertFalse(_glob_match("a/main.tf", "*.tf"))           # * is single-segment
+
+    def test_detect_domain_matches_nested_tf_write(self):
+        from transcript import ToolCall
+        calls = [ToolCall("w", "Write", {"file_path": "envs/prod/modules/vpc/main.tf"})]
+        self.assertEqual(detect_domain(calls, DMAP), {"terraform-module-steering"})

@@ -4,11 +4,40 @@ from __future__ import annotations
 import json
 import os
 import re
-from pathlib import PurePath
 
 from transcript import ToolCall
 
 _PATH_TOOLS = {"Edit", "Write", "Read", "NotebookEdit"}
+
+
+def _glob_to_regex(glob: str) -> str:
+    """Path-aware glob → regex. `**` spans directories, `*` stays within a
+    segment, `?` is one non-slash char. Version-independent (no PurePath.full_match,
+    which is 3.13-only) so under-trigger detection works on any python3."""
+    glob = glob.replace("\\", "/")
+    out: list[str] = []
+    i, n = 0, len(glob)
+    while i < n:
+        if glob[i:i + 3] == "**/":
+            out.append("(?:.*/)?")
+            i += 3
+        elif glob[i:i + 2] == "**":
+            out.append(".*")
+            i += 2
+        elif glob[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif glob[i] == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(glob[i]))
+            i += 1
+    return "^" + "".join(out) + "$"
+
+
+def _glob_match(path: str, glob: str) -> bool:
+    return re.match(_glob_to_regex(glob), str(path).replace("\\", "/")) is not None
 
 
 def detect_usage(calls: list[ToolCall], registry_names: set[str]) -> set[str]:
@@ -66,7 +95,7 @@ def detect_domain(calls: list[ToolCall], domain_map: dict[str, dict]) -> set[str
             for command in commands
         )
         glob_hit = any(
-            PurePath(path).full_match(glob)
+            _glob_match(path, glob)
             for glob in sig.get("globs", [])
             for path in paths
         )
