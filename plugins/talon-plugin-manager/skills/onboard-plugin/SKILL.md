@@ -155,15 +155,12 @@ one as you go rather than reproducing JSON from memory.
    Claude entry's `version` to match. Update the README's plugins table if there is one.
 
 5. **Offer a `distill.json` (optional, non-blocking).** If the plugin has a clear domain — a file
-   type or CLI it works with — offer to add a `distill.json` at the plugin root so the
-   `distill-plugin` distillation can detect when the plugin *should* have fired but didn't
-   (under-trigger). Keep signals tight to avoid false positives:
-   ```json
-   { "domain_globs": ["**/*.tf"], "domain_cmds": ["terraform", "tofu"] }
-   ```
-   Skip it for plugins with no obvious file/command surface (e.g. pure advisory skills). If skipped,
-   the distiller can still infer and cache signals later — a shipped `distill.json` just makes it
-   precise and explicit.
+   type or CLI it works with — offer to add a `distill.json` at the plugin root (e.g.
+   `{ "domain_globs": ["**/*.tf"], "domain_cmds": ["terraform", "tofu"] }`) so `distill-plugin` can
+   detect when the plugin *should* have fired but didn't. Schema, precedence, and the keep-it-tight
+   guidance: `${CLAUDE_PLUGIN_ROOT}/references/domain-signals.md`. Skip it for plugins with no
+   obvious file/command surface; if skipped, the distiller can still infer and cache signals later —
+   a shipped `distill.json` just makes it precise and explicit.
 
 6. **Verify**, then open the PR (see Verification below).
 

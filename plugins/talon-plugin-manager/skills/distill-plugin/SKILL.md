@@ -105,9 +105,10 @@ The store dir `<STORE>` is `~/.claude/talon-distill/evidence`.
    # write ~/.claude/talon-distill/inferred/<plugin>.json
    #   {"domain_globs": ["**/*.tf"], "domain_cmds": ["terraform","tofu"]}
    ```
-   Keep it tight — a few high-precision globs/commands beat broad ones that cause false
-   under-trigger noise. (A plugin author can override this anytime by shipping a real `distill.json`,
-   which always wins.)
+   Schema, the declared-vs-inferred precedence, and the keep-it-tight guidance are the shared
+   contract in `${CLAUDE_PLUGIN_ROOT}/references/domain-signals.md` — follow it so a few
+   high-precision signals beat broad ones that cause false under-trigger noise. (A plugin author can
+   override the inferred map anytime by shipping a real `distill.json`, which always wins.)
 
 8. **Close out.** After processing a plugin's queue, mark the sessions handled, compact the store,
    and clear the ready marker in one call:
