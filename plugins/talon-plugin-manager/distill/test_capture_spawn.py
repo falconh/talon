@@ -1,7 +1,8 @@
 import os
 import tempfile
 import unittest
-from capture import run_capture
+import capture
+from capture import run_capture, _spawn_env, _spawn_command
 
 HERE = os.path.dirname(__file__)
 USAGE = os.path.join(HERE, "fixtures", "transcript_usage.jsonl")
@@ -46,3 +47,30 @@ class TestCaptureSpawn(unittest.TestCase):
                 self.assertEqual(calls, [])
         finally:
             del os.environ["TALON_DISTILL_CHILD"]
+
+    def test_auto_pass_is_dry_run_by_default(self):
+        os.environ.pop("TALON_DISTILL_AUTOPOST", None)
+        os.environ.pop("TALON_DISTILL_DRY_RUN", None)
+        env = _spawn_env("myplugin")
+        self.assertEqual(env["TALON_DISTILL_CHILD"], "1")
+        self.assertEqual(env["TALON_DISTILL_DRY_RUN"], "1")          # safe default: don't auto-post
+        self.assertTrue(env["TALON_DISTILL_DRY_LOG"].endswith("pending/myplugin.log"))
+
+    def test_autopost_opt_in_disables_dry_run(self):
+        os.environ["TALON_DISTILL_AUTOPOST"] = "1"
+        os.environ["TALON_DISTILL_DRY_RUN"] = "1"  # even if inherited, autopost must clear it
+        try:
+            env = _spawn_env("myplugin")
+            self.assertEqual(env["TALON_DISTILL_CHILD"], "1")
+            self.assertNotIn("TALON_DISTILL_DRY_RUN", env)
+        finally:
+            del os.environ["TALON_DISTILL_AUTOPOST"]
+            os.environ.pop("TALON_DISTILL_DRY_RUN", None)
+
+    def test_spawn_command_scopes_tools(self):
+        cmd = _spawn_command("p")
+        self.assertEqual(cmd[0], "claude")
+        self.assertIn("-p", cmd)
+        self.assertIn("--allowedTools", cmd)
+        self.assertIn("Bash(python3:*)", cmd)
+        self.assertNotIn("--dangerously-skip-permissions", cmd)   # never blanket-bypass

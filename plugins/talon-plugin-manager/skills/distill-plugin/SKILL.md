@@ -115,5 +115,15 @@ The store dir `<STORE>` is `~/.claude/talon-distill/evidence`.
 
 ## When invoked automatically
 
-The `SessionEnd` capture spawns this skill via `claude -p` with `TALON_DISTILL_CHILD=1` set, which
-suppresses capture in this child session (no recursion). Process only the ready queue, then exit.
+The `SessionEnd` capture spawns this skill via `claude -p` once a plugin's evidence crosses the
+batch threshold. The child session:
+- has `TALON_DISTILL_CHILD=1` set, which suppresses capture in the child (no recursion);
+- runs with a **scoped tool allowlist** (`Read`/`Write`/`Bash(python3:*)` etc.) — enough to run the
+  pipeline; `gh` is reached transitively through `python3 emit.py`, so no global `gh` permission is
+  granted;
+- is **dry-run by default** — it drafts, redacts, and *logs* the issues it would file to
+  `~/.claude/talon-distill/pending/<plugin>.log` for you to review, rather than auto-posting to a
+  public repo. Set `TALON_DISTILL_AUTOPOST=1` to let the auto-pass post for real.
+
+Process only the ready queue, then exit. (Running this skill manually posts normally — a human is
+present.) See `references/auto-pass-setup.md` for the full setup and safety model.

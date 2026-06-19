@@ -18,18 +18,42 @@ from batch import should_run_batch, mark_ready
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
 
 
-def _default_spawner(plugin: str) -> None:
-    """Best-effort detached `claude -p` distill pass for one plugin. Never raises."""
+# Tools the headless auto-pass needs. gh is reached transitively via `python3 emit.py`
+# (a subprocess of python, not a gated tool call), so we never allow `Bash(gh:*)` globally —
+# allowing python3 inside this bounded child session is enough to run the whole pipeline.
+AUTO_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Write", "Bash(python3:*)", "Bash(mkdir:*)", "Bash(cat:*)"]
+PENDING_DIR = os.path.expanduser("~/.claude/talon-distill/pending")
+
+
+def _spawn_env(plugin: str) -> dict:
+    """Environment for the auto-spawned pass. Safe by default: the pass drafts + redacts
+    and LOGS what it would file (dry-run) rather than auto-posting to a public repo. Set
+    TALON_DISTILL_AUTOPOST=1 to actually post automatically."""
     env = dict(os.environ)
-    env["TALON_DISTILL_CHILD"] = "1"
+    env["TALON_DISTILL_CHILD"] = "1"  # recursion guard: child sessions don't re-capture
+    if env.get("TALON_DISTILL_AUTOPOST") == "1":
+        env.pop("TALON_DISTILL_DRY_RUN", None)  # opt-in: real posting
+    else:
+        env["TALON_DISTILL_DRY_RUN"] = "1"
+        env["TALON_DISTILL_DRY_LOG"] = os.path.join(PENDING_DIR, f"{plugin}.log")
+    return env
+
+
+def _spawn_command(plugin: str) -> list[str]:
     prompt = (
         f"Use the talon-plugin-manager distill-plugin skill to process the distillation "
         f"evidence queue for plugin '{plugin}'. Process only the ready queue, then exit."
     )
+    return ["claude", "-p", prompt, "--permission-mode", "acceptEdits",
+            "--allowedTools", *AUTO_ALLOWED_TOOLS]
+
+
+def _default_spawner(plugin: str) -> None:
+    """Best-effort detached `claude -p` distill pass for one plugin. Never raises."""
     try:
         subprocess.Popen(
-            ["claude", "-p", prompt, "--permission-mode", "acceptEdits"],
-            env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            _spawn_command(plugin), env=_spawn_env(plugin),
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, start_new_session=True,
         )
     except (OSError, ValueError):
