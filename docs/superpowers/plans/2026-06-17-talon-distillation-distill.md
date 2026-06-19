@@ -1109,4 +1109,31 @@ git commit -m "feat(distill): auto-spawn distill pass on threshold with recursio
 **Cross-plan dependency:** Task 1 imports `transcript.py` and Task 6/8 import `evidence.py`/`batch.py`/`capture.py` from Plan 1 — so Plan 1 must be implemented first (stated in Global Constraints).
 
 **Known risks:** (1) the secret scrubber's broad patterns (12-digit IDs, emails) may quarantine some clean findings — acceptable, since quarantine is manual-review, not a drop, and abstraction-first keeps such tokens out of issue bodies in the first place. (2) Auto-spawning `claude -p` from a hook depends on `claude` being on PATH and authenticated; it is best-effort and wrapped so it never blocks session end, with manual `distill-plugin` invocation as the always-available fallback.
-```
+
+---
+
+## Implementation Notes (delta vs plan as written)
+
+Built as planned, with these additions/changes (the committed code reflects these):
+
+1. **Work-packet CLI added** (`distill_pass.py`). Beyond Tasks 1–8, a `packet`/`close` CLI
+   consolidates the per-record orchestration the SKILL.md (Task 7) originally hand-rolled;
+   the skill now makes one `packet` call. Includes `resolve_repo` (moved to `registry.py`)
+   and a skill reverse-lookup so `repo` resolves even after a rename.
+2. **Under-trigger inference fallback.** `load_domain_map` reads a cached
+   `~/.claude/talon-distill/inferred/<plugin>.json` when a plugin ships no `distill.json`;
+   the SKILL.md writes one. Globs use a version-independent matcher (no 3.13 `full_match`).
+3. **Redaction denylist** added to `redact.py`/`emit.py` (L2) for proprietary terms.
+4. **Network-safe dry-run** (`TALON_DISTILL_DRY_RUN`) in `issues.py` — `gh` calls logged, not
+   executed. Used for evals and as the auto-pass default.
+5. **Auto-pass hardening (Task 8 / G2).** The spawn passes a scoped `--allowedTools` list and
+   is **dry-run/draft-by-default**, logging intended issues to `pending/`; real posting is
+   opt-in via `TALON_DISTILL_AUTOPOST=1`. `gh` is reached transitively via `python3 emit.py`,
+   so no global `gh` permission is granted. Added `references/auto-pass-setup.md`.
+6. **Evidence compaction** (`pass_state.compact_processed`) bounds the store; `close` calls it.
+7. **Description optimized** via skill-creator `run_loop` (adopted a safer/clearer variant).
+8. **Evals** (`skills/distill-plugin/evals/`) + an end-to-end pipeline test were added and run
+   (unit: 85 tests; agent-level: 4 scenarios in dry-run).
+
+Still open: **G3** (Bash-script usage detection — `detect_usage` is `Skill`-only) and the
+`≥K`-recurrence batch trigger (N-session only).

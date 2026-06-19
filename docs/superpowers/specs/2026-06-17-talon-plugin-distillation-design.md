@@ -212,3 +212,63 @@ explicitly rather than wait for the threshold.
   keep the parser tolerant and version-aware.
 - **Fault-classification precision.** The skill-vs-agent-vs-environment call is the main
   noise control; lean on `skip`.
+
+---
+
+## 11. Post-implementation changes (delta vs this design)
+
+The implementation matches this design; the items below were added during build, review,
+and eval, and supersede the corresponding parts above.
+
+**Packaging.** `plugin.json` carries **no** `hooks` key — Claude Code auto-loads
+`hooks/hooks.json` by convention (matches the `superpowers` plugin); the hook command is
+`async`. The `talon-onboarding`→`talon-plugin-manager` rename is a v2.0.0 bump across both
+catalogs/manifests; `onboard-plugin` keeps its name.
+
+**Phase B orchestration (§2).** The reasoning steps live in the `distill-plugin` SKILL.md,
+backed by deterministic CLIs in `distill/`. A **work-packet CLI** (`distill_pass.py packet`)
+returns ready plugins with resolved repo, `domain_declared`, and pre-built trajectories in
+one call, so the skill doesn't hand-orchestrate per record; `distill_pass.py close` marks
+processed + compacts + clears the ready marker.
+
+**Under-trigger for undeclared plugins (§5).** `load_domain_map` falls back to a cached
+LLM-inferred map at `~/.claude/talon-distill/inferred/<plugin>.json`; the pass writes one
+when `domain_declared` is false (a shipped `distill.json` always wins). `onboard-plugin`
+offers to capture a `distill.json` at onboarding. Glob matching is version-independent
+(no Python-3.13 `PurePath.full_match` dependency).
+
+**Repo resolution.** 3-tier: (1) recorded at capture time on the evidence record, (2)
+registry install-path manifest, (3) reverse-lookup via the skills that fired
+(`<plugin>:<skill>` → the installed plugin providing that skill) — survives renames.
+
+**Redaction (§7).** Added a deterministic **denylist** (`~/.claude/talon-distill/denylist.txt`)
+for proprietary terms (internal hostnames, org/customer names) the shape-based scrubber
+can't know; wired into the emit gate. L1 abstraction is documented as load-bearing.
+
+**State (§6).** `compact_processed` bounds the append-only store (drops processed records).
+
+**Dry-run & the auto-pass (§6, §10 "Headless spawn").** `TALON_DISTILL_DRY_RUN=1` makes
+`emit.py` log intended `gh` calls instead of executing them (network-safe). The
+`SessionEnd` auto-pass uses this as its **default**: it spawns `claude -p` with a **scoped
+`--allowedTools`** list (enough to run the pipeline; `gh` is reached transitively via
+`python3 emit.py`, so no global `gh` grant), drafts + redacts, and **logs** intended issues
+to `~/.claude/talon-distill/pending/<plugin>.log` rather than auto-posting. Real auto-posting
+is opt-in via `TALON_DISTILL_AUTOPOST=1`. A recursion guard (`TALON_DISTILL_CHILD=1`) stops
+the child session from re-capturing. See `skills/distill-plugin/references/auto-pass-setup.md`.
+
+**Triggering (§8).** The `distill-plugin` description was run through skill-creator's
+`run_loop` (20 queries, 13/7 train/test). No rewrite beat the original on held-out test, so
+a safer/clearer iteration was adopted; the durable finding is that this niche maintainer
+skill under-triggers on natural phrasings regardless of wording — explicit invocation and
+the auto-pass (explicit prompt) are the reliable trigger paths.
+
+**Validation.** Deterministic helpers are unit-tested (85 tests). Agent-level evals
+(`skills/distill-plugin/evals/`) exercise usage-friction, secret-safety (incl. a
+plugin-fault + secret-in-trajectory case that reaches the emit gate), and under-trigger
+inference, all in dry-run.
+
+### Still open
+- **G3 — Bash-script usage detection.** `detect_usage` is `Skill`-call-only; a plugin whose
+  surface is a bundled Bash script isn't counted as "used."
+- **Threshold tuning (N, K).** Still defaulted conservative; the `≥K`-recurrence trigger is
+  not implemented (N-session only).
