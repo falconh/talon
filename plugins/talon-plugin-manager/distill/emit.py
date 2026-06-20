@@ -12,6 +12,18 @@ from quarantine import QUARANTINE_DIR, quarantine
 from redact import scan_secrets
 
 DENYLIST_FILE = os.path.expanduser("~/.claude/talon-distill/denylist.txt")
+PENDING_DIR = os.path.expanduser("~/.claude/talon-distill/pending")
+
+
+def _defer(finding: dict, fp: str, body: str, pending_dir: str = PENDING_DIR) -> str:
+    """No GitHub transport (no gh, no token, not dry-run). Write the already-redacted issue
+    to pending/ so it can be posted by hand (or by the agent via the GitHub MCP server)."""
+    os.makedirs(pending_dir, exist_ok=True)
+    path = os.path.join(pending_dir, f"{fp}.md")
+    labels = ",".join(finding.get("labels", ["distillation"]))
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(f"# {finding.get('title', '')}\n\nrepo: {finding['repo']}\nlabels: {labels}\n\n{body}\n")
+    return path
 
 
 def _load_denylist() -> list[str]:
@@ -25,7 +37,8 @@ def _load_denylist() -> list[str]:
 
 
 def emit_finding(finding: dict, runner=issues.default_runner, quarantine_dir: str = QUARANTINE_DIR,
-                 denylist: list[str] | None = None) -> dict:
+                 denylist: list[str] | None = None, backend: str | None = None,
+                 pending_dir: str = PENDING_DIR) -> dict:
     if denylist is None:
         denylist = _load_denylist()
     repo = finding["repo"]
@@ -39,18 +52,22 @@ def emit_finding(finding: dict, runner=issues.default_runner, quarantine_dir: st
         )
         return {"status": "quarantined", "fingerprint": fp, "path": path}
 
-    existing = issues.find_existing(repo, fp, runner)
+    backend = backend or issues.select_backend()
+    if backend == "none":  # no gh, no token, not dry-run — preserve the (redacted) finding
+        return {"status": "deferred", "fingerprint": fp, "path": _defer(finding, fp, body, pending_dir)}
+
+    existing = issues.find_existing(repo, fp, runner, backend=backend)
     labels = finding.get("labels", ["distillation"])
     note = finding.get("recurrence_note", f"Recurred (fingerprint `{fp}`).")
     if existing is None:
-        url = issues.open_issue(repo, finding["title"], body, labels, runner)
+        url = issues.open_issue(repo, finding["title"], body, labels, runner, backend=backend)
         return {"status": "opened", "fingerprint": fp, "url": url}
     number = existing["number"]
     if str(existing.get("state", "")).upper() == "CLOSED":
-        issues.reopen(repo, number, runner)
-        issues.comment(repo, number, "Reopened as regression. " + note, runner)
+        issues.reopen(repo, number, runner, backend=backend)
+        issues.comment(repo, number, "Reopened as regression. " + note, runner, backend=backend)
         return {"status": "reopened", "fingerprint": fp, "number": number}
-    issues.comment(repo, number, note, runner)
+    issues.comment(repo, number, note, runner, backend=backend)
     return {"status": "updated", "fingerprint": fp, "number": number}
 
 

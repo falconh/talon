@@ -89,11 +89,22 @@ The store dir `<STORE>` is `~/.claude/talon-distill/evidence`.
    }
    ```
    Then: `python3 ${CLAUDE_PLUGIN_ROOT}/distill/emit.py --finding-file <finding.json>`.
-   (To rehearse without posting, set `TALON_DISTILL_DRY_RUN=1` — `gh` calls are logged, not run.)
-   Read the printed status: `opened` / `updated` / `reopened` / `quarantined`. If `quarantined`,
-   tell the user a finding needs manual review (the scrubber found something) — do NOT try to
-   re-post it. If the packet's `repo` is `null`, you could not resolve the plugin's repo — skip
-   emitting and note it for the user.
+   `emit.py` picks the GitHub transport automatically — `gh` if installed, else the REST API if
+   `GH_TOKEN`/`GITHUB_TOKEN` is set, else it **defers** (writes the redacted issue to
+   `~/.claude/talon-distill/pending/<fp>.md`). Read the printed status:
+   `opened` / `updated` / `reopened` / `quarantined` / `deferred`.
+   - `quarantined` → the scrubber found something; tell the user it needs manual review, do NOT
+     re-post it.
+   - `deferred` → no `gh`/token available; if you have **GitHub MCP** tools, post it via them now
+     (see below), otherwise tell the user it's queued in `pending/`.
+   - To rehearse without posting, set `TALON_DISTILL_DRY_RUN=1` (calls are logged, not run).
+   - If the packet's `repo` is `null`, you couldn't resolve the repo — skip emitting and note it.
+
+   **Preferring the GitHub MCP server** (if its tools are available): run `emit.py` with
+   `TALON_DISTILL_DRY_RUN=1` first — that runs the redaction gate + computes the fingerprint and
+   logs the intended issue without posting — then reproduce the dedup via MCP (search the repo for
+   the `<!-- distill-fp: … -->` marker → create / comment / reopen). Never post a body that hasn't
+   passed through `emit.py`. Full backend order + token setup: `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
 
 7. **Improve under-trigger coverage (if `domain_declared` is false).** A plugin with
    `domain_declared: false` has no domain-signal map, so Phase A can't yet detect when it *should*

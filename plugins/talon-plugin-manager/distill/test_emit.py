@@ -4,6 +4,16 @@ import unittest
 from emit import emit_finding
 
 
+class FakeHttp:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def __call__(self, method, path, token, payload=None):
+        self.calls.append((method, path, payload))
+        return self.responses.pop(0)
+
+
 class FakeRunner:
     def __init__(self, list_out="[]"):
         self.list_out, self.calls = list_out, []
@@ -62,3 +72,24 @@ class TestEmit(unittest.TestCase):
             res = emit_finding(dirty, runner=r, quarantine_dir=q, denylist=["AcmeCorp"])
         self.assertEqual(res["status"], "quarantined")
         self.assertFalse(any(a[:3] == ["gh", "issue", "create"] for a in r.calls))
+
+    def test_defers_when_no_transport(self):
+        import os
+        with tempfile.TemporaryDirectory() as q, tempfile.TemporaryDirectory() as pend:
+            res = emit_finding(BASE, quarantine_dir=q, pending_dir=pend, backend="none")
+            self.assertEqual(res["status"], "deferred")
+            self.assertTrue(res["path"].startswith(pend))
+            self.assertTrue(os.path.exists(res["path"]))
+
+    def test_api_backend_opens_via_http(self):
+        import issues
+        http = FakeHttp([(200, {"items": []}), (201, {"html_url": "https://github.com/o/r/issues/9"})])
+        orig = issues.api_request
+        issues.api_request = http  # call-time global lookup picks this up
+        try:
+            with tempfile.TemporaryDirectory() as q:
+                res = emit_finding(BASE, quarantine_dir=q, backend="api")
+        finally:
+            issues.api_request = orig
+        self.assertEqual(res["status"], "opened")
+        self.assertEqual(res["url"], "https://github.com/o/r/issues/9")
