@@ -44,8 +44,10 @@ These exist because a marketplace that is half-updated silently breaks for one t
 fine for the other.
 
 1. **Every change is a pull request.** Never push to a default branch (`main`/`master`). Branch,
-   commit, push the branch, and open a PR with `gh pr create`. This applies to both the plugin repo
-   and to talon.
+   commit, push the branch (plain `git`), and open a PR. This applies to both the plugin repo and to
+   talon. Open the PR with `gh pr create` when `gh` is installed; if it isn't, use the GitHub MCP
+   server's PR tool, or the REST API (`POST /repos/<owner>/<repo>/pulls`) — see
+   `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
 2. **Both catalogs always move together.** If a plugin appears in one catalog it must appear in the
    other. If you change a version/ref in one, change it in the other in the same PR.
 3. **Every plugin ships both manifests + a dual-valid skill.** A plugin needs both
@@ -107,7 +109,10 @@ Examples:
 
 ## Before you start
 
-Confirm the GitHub CLI is ready: `gh auth status` (needs `repo` scope). All steps below use `gh`.
+Make sure you can reach GitHub for PRs. `git` is always required; for opening the PR, use whichever
+is available — `gh` (`gh auth status`, needs `repo` scope), the GitHub MCP server, or the REST API
+with `GH_TOKEN`/`GITHUB_TOKEN`. The command examples below use `gh`; substitute per
+`${CLAUDE_PLUGIN_ROOT}/references/github-access.md` if `gh` isn't installed.
 
 **Confirm the target marketplace — do not assume.** This skill defaults to **Talon**
 (`falconh/talon`), but a plugin is not owned by any one marketplace. If the request does not name a
@@ -204,7 +209,7 @@ python3 skills/onboard-plugin/scripts/validate_talon.py --root .
 Also sanity-check by hand:
 - Every touched `*.json` parses.
 - For a remote release: the tag exists on the plugin repo
-  (`gh api repos/<owner>/<repo>/git/ref/tags/vX.Y.Z`) so the pin resolves.
+  (`git ls-remote --tags origin refs/tags/vX.Y.Z`) so the pin resolves.
 - If available: `claude plugin validate plugins/<name>` for local plugins.
 
 Only open the PR once verification passes. Put both catalog edits (and any README/table update) in
