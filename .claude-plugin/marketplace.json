@@ -22,10 +22,10 @@
       "source": {
         "source": "url",
         "url": "https://github.com/falconh/terraform-module-steering.git",
-        "ref": "v1.2.0"
+        "ref": "v1.3.0"
       },
       "description": "Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (greenfield + brownfield): per-service CIS/FSBP research, wrap-upstream, minimal inputs, hardcoded non-overridable security, docs + verification pipeline.",
-      "version": "1.2.0"
+      "version": "1.3.0"
     },
     {
       "name": "talon-plugin-manager",
