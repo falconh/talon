@@ -23,6 +23,18 @@ accumulated. You process that queue.
 
 All helper scripts live in `${CLAUDE_PLUGIN_ROOT}/distill/`. Run them with `python3`.
 
+## Preflight (do this first)
+
+The whole pipeline runs on `python3`, and the `SessionEnd` capture hook does too — but not every
+machine has it. Before anything else:
+
+1. **Confirm the runtime.** Run `python3 --version`. If it is not found, none of the steps below can
+   run and no evidence is being captured on this machine. Tell the user distillation needs `python3`
+   on PATH (and how to install it), then stop — there is nothing you can process without it.
+2. **Surface silent skips.** If `~/.claude/talon-distill/runtime.log` exists, read it. Each line is a
+   past session where capture was skipped because `python3` was missing. If there are entries, report
+   to the user that those sessions were not captured before continuing.
+
 ## Absolute rules
 
 1. **Abstraction-first (redaction Layer 1) — this is load-bearing.** Describe the plugin gap only.

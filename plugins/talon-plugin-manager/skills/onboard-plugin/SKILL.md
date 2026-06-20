@@ -167,6 +167,12 @@ one as you go rather than reproducing JSON from memory.
    obvious file/command surface; if skipped, the distiller can still infer and cache signals later —
    a shipped `distill.json` just makes it precise and explicit.
 
+   When you offer this, flag the runtime dependency: distillation **capture** runs from the
+   `SessionEnd` hook via `python3`, so it only records evidence on machines where `python3` is on
+   PATH. Check it (`python3 --version`); where it's absent the hook skips capture and writes a line to
+   `~/.claude/talon-distill/runtime.log` (the `distill-plugin` skill surfaces these) — nothing breaks,
+   but no evidence accrues until `python3` is installed.
+
 6. **Verify**, then open the PR (see Verification below).
 
 ## Flow B — release an update (bump → tag → pin)
