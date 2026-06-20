@@ -1,7 +1,11 @@
-# Release & PR workflow (with `gh`)
+# Release & PR workflow
 
 Every change to a plugin repo or to talon goes through a pull request. Never commit to a default
 branch. This file gives the exact command sequence; the conceptual steps are in `SKILL.md`.
+
+`git` is always required. The PR-creation commands below show `gh` as the primary example; if `gh`
+isn't installed, open the PR via the **GitHub MCP server** or the **REST API** instead (same fields)
+— see `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
 
 End commit messages and PR bodies with the standard trailer if your environment requires it.
 
@@ -19,6 +23,7 @@ git add -A
 git commit -m "<summary>"
 git push -u origin <topic-branch>
 
+# open the PR — gh shown; no gh? use MCP or the REST API (references/github-access.md):
 gh pr create --repo falconh/<repo> \
   --base <default-branch> \
   --title "<summary>" \
@@ -31,8 +36,8 @@ After the PR is **merged**, tag the release on the merge commit:
 git fetch origin
 git tag -a vX.Y.Z -m "vX.Y.Z — <summary>" origin/<default-branch>
 git push origin vX.Y.Z
-# confirm it resolves:
-gh api repos/falconh/<repo>/git/ref/tags/vX.Y.Z -q '.ref'
+# confirm it resolves (pure git, no gh needed):
+git ls-remote --tags origin refs/tags/vX.Y.Z
 ```
 
 Tags are `v`-prefixed and **annotated** (`-a`), matching the existing convention.
@@ -54,6 +59,7 @@ git add -A
 git commit -m "<summary>"
 git push -u origin <topic-branch>
 
+# open the PR — gh shown; no gh? use MCP or the REST API (references/github-access.md):
 gh pr create --repo falconh/talon \
   --base main \
   --title "<summary>" \
