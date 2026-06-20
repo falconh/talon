@@ -11,7 +11,7 @@ One repo, two marketplaces, the same skills.
 | Plugin | What it does | Source |
 | --- | --- | --- |
 | `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
-| `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.1.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
+| `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.3.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
 | `talon-plugin-manager` | Maintainer plugin: onboard and release plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow), plus distill real session usage of Talon plugins into improvement findings. | local (`plugins/talon-plugin-manager`) |
 
 Plugins can live **in this repo** (local source) or **in their own repo** (remote
