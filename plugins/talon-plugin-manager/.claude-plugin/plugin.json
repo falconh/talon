@@ -1,7 +1,7 @@
 {
   "name": "talon-plugin-manager",
   "description": "Maintainer plugin for the Talon marketplace: onboard and release plugins with dual Claude Code + Codex support (naming, semver bump + tag, PR-only), and distill real session usage of Talon plugins into improvement findings.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": {
     "name": "falconh"
   },
