@@ -28,10 +28,10 @@
       "version": "1.2.0"
     },
     {
-      "name": "talon-onboarding",
-      "source": "./plugins/talon-onboarding",
-      "description": "Maintainer skill: guides onboarding and updating plugins on the Talon marketplace with dual Claude Code + Codex support, plugin naming guidance, semver version bumping + tagging, and a PR-only workflow.",
-      "version": "1.1.0",
+      "name": "talon-plugin-manager",
+      "source": "./plugins/talon-plugin-manager",
+      "description": "Maintainer plugin: onboard, release, and distill plugins on the Talon marketplace (dual Claude Code + Codex, naming, semver bump + tag, PR-only).",
+      "version": "2.0.0",
       "author": {
         "name": "falconh"
       }

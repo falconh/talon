@@ -1,0 +1,1 @@
+{ "domain_globs": ["**/*.tf"], "domain_cmds": ["terraform", "tofu"] }

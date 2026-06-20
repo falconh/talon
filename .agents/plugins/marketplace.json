@@ -30,10 +30,10 @@
       "category": "Development"
     },
     {
-      "name": "talon-onboarding",
+      "name": "talon-plugin-manager",
       "source": {
         "source": "local",
-        "path": "./plugins/talon-onboarding"
+        "path": "./plugins/talon-plugin-manager"
       },
       "policy": {
         "installation": "AVAILABLE",
