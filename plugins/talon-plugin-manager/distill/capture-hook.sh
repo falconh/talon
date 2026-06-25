@@ -10,14 +10,14 @@
 # POSIX sh only (macOS/Linux). On Windows the hook shell differs and may not run this; there the
 # distill-plugin skill's preflight is the safety net instead.
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 0
+LOG_DIR="${HOME}/.claude/talon-distill"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 if command -v python3 >/dev/null 2>&1; then
-    exec python3 "$DIR/capture.py"   # exec preserves the SessionEnd payload on stdin
+    exec python3 "$DIR/capture.py" 2>>"$LOG_DIR/capture-hook.err"   # keep stderr, don't discard it
 fi
 
 # python3 missing: record a non-fatal breadcrumb and exit clean (never block session end).
-LOG_DIR="${HOME}/.claude/talon-distill"
-mkdir -p "$LOG_DIR" 2>/dev/null || exit 0
 printf '%s python3 not found on PATH; talon distill SessionEnd capture skipped\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" >> "$LOG_DIR/runtime.log" 2>/dev/null
 exit 0

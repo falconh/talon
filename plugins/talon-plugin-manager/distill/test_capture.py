@@ -102,3 +102,16 @@ class TestCapture(unittest.TestCase):
             run_capture(payload, store, ip)   # same session again (e.g. resume)
             from evidence import read_evidence
             self.assertEqual(len(read_evidence(store, "talon-plugin-manager")), 1)
+
+    def test_capture_writes_audit_log(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            ip = installed_with(d, {"talon-plugin-manager": ""})
+            payload = {"session_id": "s", "transcript_path": USAGE, "cwd": "/x",
+                       "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            log = os.path.join(d, "capture.log")   # sibling of the store dir
+            self.assertTrue(os.path.exists(log))
+            content = open(log).read()
+            self.assertIn("session=s", content)
+            self.assertIn("talon-plugin-manager", content)

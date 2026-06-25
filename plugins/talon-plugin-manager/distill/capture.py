@@ -13,9 +13,29 @@ from transcript import parse_transcript
 from detect import detect_usage, load_domain_map, under_triggered
 from windows import per_plugin_friction
 from evidence import EVIDENCE_DIR, EvidenceRecord, upsert_evidence
-from batch import should_run_batch, mark_ready
+from batch import should_run_batch, mark_ready, unprocessed_count
 
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
+
+
+def _capture_log_path(store_dir: str) -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(store_dir)), "capture.log")
+
+
+def _write_capture_log(store_dir: str, session_id: str, wrote: list[str],
+                       used: set[str], under: set[str]) -> None:
+    try:
+        line = (
+            f"{datetime.now(timezone.utc).isoformat()} session={session_id or '-'} "
+            f"wrote={sorted(wrote)} used={sorted(used)} under={sorted(under)} "
+            f"unprocessed={{{', '.join(f'{p!r}: {unprocessed_count(store_dir, p)}' for p in sorted(wrote))}}}"
+        )
+        path = _capture_log_path(store_dir)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except OSError:
+        pass
 
 
 # Tools the headless auto-pass needs. gh is reached transitively via `python3 emit.py`
@@ -97,6 +117,7 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
             mark_ready(store_dir, plugin)
             if spawner is not None:
                 spawner(plugin)
+    _write_capture_log(store_dir, payload.get("session_id", ""), wrote, used, under)
     return wrote
 
 
