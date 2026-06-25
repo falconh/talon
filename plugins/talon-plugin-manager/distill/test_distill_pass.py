@@ -5,7 +5,7 @@ import unittest
 from evidence import EvidenceRecord, append_evidence
 from batch import mark_ready
 from pass_state import mark_processed
-from distill_pass import resolve_repo, build_packet
+from distill_pass import resolve_repo, build_packet, status_rows
 
 HERE = os.path.dirname(__file__)
 USAGE = os.path.join(HERE, "fixtures", "transcript_usage.jsonl")
@@ -99,3 +99,13 @@ class TestBuildPacket(unittest.TestCase):
             registry = {"talon-plugin-manager": "", "talon-onboarding": inst}  # renamed name absent
             packet = build_packet(store, registry)
             self.assertEqual(packet["plugins"][0]["repo"], "falconh/talon")
+
+
+def test_status_rows_report_unprocessed_and_threshold():
+    with tempfile.TemporaryDirectory() as d:
+        append_evidence(d, EvidenceRecord("a", "p1", "usage", [], {}, "2026-06-24T00:00:00Z", "/t"))
+        append_evidence(d, EvidenceRecord("b", "p1", "usage", [], {}, "2026-06-25T00:00:00Z", "/t"))
+        rows = {r["plugin"]: r for r in status_rows(d, n_threshold=2)}
+        assert rows["p1"]["unprocessed"] == 2
+        assert rows["p1"]["ready"] is True
+        assert rows["p1"]["last_captured"] == "2026-06-25T00:00:00Z"

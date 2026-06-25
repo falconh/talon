@@ -34,6 +34,11 @@ machine has it. Before anything else:
 2. **Surface silent skips.** If `~/.claude/talon-distill/runtime.log` exists, read it. Each line is a
    past session where capture was skipped because `python3` was missing. If there are entries, report
    to the user that those sessions were not captured before continuing.
+3. **Check the queue.** Run `python3 ${CLAUDE_PLUGIN_ROOT}/distill/distill_pass.py status`.
+   It lists each plugin's unprocessed evidence count, last capture time, and whether the
+   batch threshold is met. If everything is below threshold, there may be nothing to
+   process yet — say so rather than forcing a pass. (For the silent async hook's own
+   stderr, see `~/.claude/talon-distill/capture-hook.err` and `capture.log`.)
 
 ## Absolute rules
 

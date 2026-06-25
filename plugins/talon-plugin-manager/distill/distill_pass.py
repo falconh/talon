@@ -44,6 +44,39 @@ def _packet_repo(install_path: str, records: list[dict], registry: dict[str, str
     return resolve_repo_by_skill(skills, registry)
 
 
+def status_rows(store_dir: str, n_threshold: int = 5) -> list[dict]:
+    rows: list[dict] = []
+    if not os.path.isdir(store_dir):
+        return rows
+    for fn in sorted(os.listdir(store_dir)):
+        if not fn.endswith(".jsonl"):
+            continue
+        plugin = fn[: -len(".jsonl")]
+        recs = dedupe_evidence(read_evidence(store_dir, plugin))
+        unprocessed = [r for r in recs if not r.get("processed", False)]
+        last = max((r.get("captured_at", "") for r in recs), default="")
+        rows.append({
+            "plugin": plugin,
+            "unprocessed": len(unprocessed),
+            "total": len(recs),
+            "last_captured": last,
+            "ready": len(unprocessed) >= n_threshold,
+        })
+    return rows
+
+
+def format_status(store_dir: str, n_threshold: int = 5) -> str:
+    rows = status_rows(store_dir, n_threshold)
+    if not rows:
+        return "no evidence captured yet"
+    out = []
+    for r in rows:
+        verdict = "READY" if r["ready"] else f"waiting ({r['unprocessed']}/{n_threshold})"
+        out.append(f"{r['plugin']}: {r['unprocessed']} unprocessed, "
+                   f"last {r['last_captured'] or '-'} -> {verdict}")
+    return "\n".join(out)
+
+
 def build_packet(store_dir: str, registry: dict[str, str], clip: int = 200) -> dict:
     plugins: list[dict] = []
     for plugin in ready_plugins(store_dir):
@@ -83,6 +116,9 @@ def main(argv: list[str]) -> int:
         compact_processed(store, plugin)
         clear_ready(store, plugin)
         print(f"closed {plugin}: {len(sessions)} session(s)")
+    elif cmd == "status":
+        store = rest[0] if rest else EVIDENCE_DIR
+        print(format_status(store))
     else:
         return 1
     return 0
