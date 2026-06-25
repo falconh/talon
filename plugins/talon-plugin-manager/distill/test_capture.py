@@ -7,6 +7,7 @@ HERE = os.path.dirname(__file__)
 FIXDIR = os.path.join(HERE, "fixtures")
 USAGE = os.path.join(FIXDIR, "transcript_usage.jsonl")
 UNDER = os.path.join(FIXDIR, "transcript_under_trigger.jsonl")
+BLEED = os.path.join(FIXDIR, "transcript_friction_bleed.jsonl")
 
 
 def installed_with(tmp, mapping):
@@ -64,6 +65,22 @@ class TestCapture(unittest.TestCase):
             rec = read_evidence(store, "talon-plugin-manager")[0]
             self.assertEqual(rec["repo"], "falconh/talon")                       # captured at capture time
             self.assertEqual(rec["skills_used"], ["talon-plugin-manager:onboard-plugin"])  # real skill id
+
+    def test_friction_is_localized_per_plugin(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            ip = installed_with(d, {"talon-plugin-manager": "",
+                                    "terraform-module-steering": FIXDIR})
+            payload = {"session_id": "s", "transcript_path": BLEED, "cwd": "/x",
+                       "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            from evidence import read_evidence
+            tpm = read_evidence(store, "talon-plugin-manager")[0]["friction"]
+            tms = read_evidence(store, "terraform-module-steering")[0]["friction"]
+            self.assertFalse(tpm["has_tool_errors"])   # clean usage window
+            self.assertEqual(tpm["error_count"], 0)
+            self.assertTrue(tms["has_tool_errors"])     # errors localized to under-trigger
+            self.assertEqual(tms["error_count"], 2)
 
     def test_threshold_sets_ready_marker(self):
         with tempfile.TemporaryDirectory() as d:

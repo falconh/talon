@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from registry import load_talon_registry, resolve_repo
 from transcript import parse_transcript
 from detect import detect_usage, load_domain_map, under_triggered
-from friction import scan_friction
+from windows import per_plugin_friction
 from evidence import EVIDENCE_DIR, EvidenceRecord, append_evidence
 from batch import should_run_batch, mark_ready
 
@@ -74,7 +74,7 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
     under = under_triggered(parsed.tool_calls, names, domain_map)
     if not used and not under:
         return []
-    friction = scan_friction(parsed.tool_calls, parsed.user_texts).as_dict()
+    friction_map = per_plugin_friction(parsed, used, under, domain_map)
     captured_at = datetime.now(timezone.utc).isoformat()
     wrote: list[str] = []
     for plugin in sorted(used | under):
@@ -86,7 +86,7 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
             plugin=plugin,
             kind="usage" if plugin in used else "under_trigger",
             skills_used=skills_used,
-            friction=friction,
+            friction=friction_map[plugin],
             captured_at=captured_at,
             transcript_path=payload.get("transcript_path", ""),
             repo=resolve_repo(registry.get(plugin, "")) or "",
