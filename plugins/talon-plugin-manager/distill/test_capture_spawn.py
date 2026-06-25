@@ -25,8 +25,9 @@ class TestCaptureSpawn(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             store, ip = os.path.join(d, "store"), installed_with(d, {"talon-plugin-manager": ""})
             calls = []
-            for _ in range(5):
-                run_capture(self._payload(), store, ip, n_threshold=5, spawner=calls.append)
+            for i in range(5):
+                payload = dict(self._payload(), session_id=f"s{i}")
+                run_capture(payload, store, ip, n_threshold=5, spawner=calls.append)
             self.assertIn("talon-plugin-manager", calls)
 
     def test_spawner_not_called_before_threshold(self):
