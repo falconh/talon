@@ -14,7 +14,10 @@ LOG_DIR="${HOME}/.claude/talon-distill"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 if command -v python3 >/dev/null 2>&1; then
-    exec python3 "$DIR/capture.py" 2>>"$LOG_DIR/capture-hook.err"   # keep stderr, don't discard it
+    if [ -d "$LOG_DIR" ]; then
+        exec python3 "$DIR/capture.py" 2>>"$LOG_DIR/capture-hook.err"   # keep stderr when we can
+    fi
+    exec python3 "$DIR/capture.py"   # LOG_DIR unwritable: still run capture, just no err file
 fi
 
 # python3 missing: record a non-fatal breadcrumb and exit clean (never block session end).

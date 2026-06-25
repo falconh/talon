@@ -34,7 +34,7 @@ def _write_capture_log(store_dir: str, session_id: str, wrote: list[str],
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
-    except OSError:
+    except Exception:
         pass
 
 
