@@ -32,6 +32,9 @@ def per_plugin_friction(parsed: ParsedTranscript, used: set[str], under: set[str
         if plugin in used:
             start = min(c.seq for c in calls
                         if c.name == "Skill" and _plugin_of_skill(c) == plugin)
+            # Window-end boundaries are only those AFTER the skill call; a domain span
+            # already in progress before the skill isn't a boundary, so its post-skill
+            # errors fall in this window too (the under-trigger plugin still gets them).
             ends = [s for s in skill_seqs if s > start] + [s for s in span_starts if s > start]
             end = min(ends) if ends else None  # None -> open to end of session
             in_window = (lambda s, lo=start, hi=end: s >= lo and (hi is None or s < hi))
