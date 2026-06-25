@@ -12,7 +12,7 @@ from registry import load_talon_registry, resolve_repo
 from transcript import parse_transcript
 from detect import detect_usage, load_domain_map, under_triggered
 from windows import per_plugin_friction
-from evidence import EVIDENCE_DIR, EvidenceRecord, append_evidence
+from evidence import EVIDENCE_DIR, EvidenceRecord, upsert_evidence
 from batch import should_run_batch, mark_ready
 
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
@@ -91,7 +91,7 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
             transcript_path=payload.get("transcript_path", ""),
             repo=resolve_repo(registry.get(plugin, "")) or "",
         )
-        append_evidence(store_dir, rec)
+        upsert_evidence(store_dir, rec)
         wrote.append(plugin)
         if should_run_batch(store_dir, plugin, n_threshold):
             mark_ready(store_dir, plugin)

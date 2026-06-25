@@ -2,11 +2,12 @@
 from __future__ import annotations
 import os
 
-from evidence import read_evidence
+from evidence import read_evidence, dedupe_evidence
 
 
 def unprocessed_count(store_dir: str, plugin: str) -> int:
-    return sum(1 for r in read_evidence(store_dir, plugin) if not r.get("processed", False))
+    return sum(1 for r in dedupe_evidence(read_evidence(store_dir, plugin))
+               if not r.get("processed", False))
 
 
 def should_run_batch(store_dir: str, plugin: str, n_threshold: int = 5) -> bool:

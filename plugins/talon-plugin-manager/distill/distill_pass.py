@@ -8,7 +8,7 @@ import os
 import sys
 
 from registry import load_talon_registry, resolve_repo
-from evidence import EVIDENCE_DIR, read_evidence
+from evidence import EVIDENCE_DIR, read_evidence, dedupe_evidence
 from pass_state import ready_plugins, mark_processed, clear_ready, compact_processed
 from trajectory import build_trajectory
 
@@ -48,7 +48,8 @@ def build_packet(store_dir: str, registry: dict[str, str], clip: int = 200) -> d
     plugins: list[dict] = []
     for plugin in ready_plugins(store_dir):
         install_path = registry.get(plugin, "")
-        records = [r for r in read_evidence(store_dir, plugin) if not r.get("processed", False)]
+        records = [r for r in dedupe_evidence(read_evidence(store_dir, plugin))
+                   if not r.get("processed", False)]
         sessions = [{
             "session_id": r.get("session_id", ""),
             "kind": r.get("kind", ""),
