@@ -42,7 +42,8 @@ def select_backend(have_gh: bool | None = None, token: str | None = None) -> str
 
 def _dry_runner(args: list[str]) -> tuple[int, str, str]:
     """Record the gh command and return canned output — never touches the network."""
-    log = os.environ.get("TALON_DISTILL_DRY_LOG", os.path.expanduser("~/.claude/talon-distill/dry_run.log"))
+    from paths import under
+    log = os.environ.get("TALON_DISTILL_DRY_LOG") or under("dry_run.log")
     try:
         os.makedirs(os.path.dirname(log), exist_ok=True)
         with open(log, "a", encoding="utf-8") as fh:

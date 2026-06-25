@@ -1,10 +1,13 @@
-"""Append-only per-plugin evidence store at ~/.claude/talon-distill/evidence/<plugin>.jsonl."""
+"""Append-only per-plugin evidence store at <distill-home>/evidence/<plugin>.jsonl
+(distill-home defaults to ~/.claude/talon-distill; see paths.py)."""
 from __future__ import annotations
 import json
 import os
 from dataclasses import asdict, dataclass
 
-EVIDENCE_DIR = os.path.expanduser("~/.claude/talon-distill/evidence")
+from paths import under
+
+EVIDENCE_DIR = under("evidence")
 
 
 @dataclass

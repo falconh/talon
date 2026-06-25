@@ -10,7 +10,9 @@
 # POSIX sh only (macOS/Linux). On Windows the hook shell differs and may not run this; there the
 # distill-plugin skill's preflight is the safety net instead.
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 0
-LOG_DIR="${HOME}/.claude/talon-distill"
+# All distill state lives under one root; TALON_DISTILL_HOME (an absolute path) overrides
+# the default so evals and the auto-pass stay off the user's real store. Mirrors paths.py.
+LOG_DIR="${TALON_DISTILL_HOME:-${HOME}/.claude/talon-distill}"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 if command -v python3 >/dev/null 2>&1; then

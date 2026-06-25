@@ -1,17 +1,18 @@
 {
   "skill_name": "distill-plugin",
-  "notes": "Evals for the distill-plugin reasoning orchestrator. Each prompt assumes a seeded evidence store at ~/.claude/talon-distill/evidence with a <plugin>.ready marker (see evals/seed_store.py to reproduce). Because filing real issues is outward-facing, runs should point emit.py at a fake gh runner or a throwaway repo. Assertions check the *behaviors the skill must exhibit*, not exact prose.",
+  "notes": "Evals for the distill-plugin reasoning orchestrator. Run each HERMETICALLY and OFFLINE: export TALON_DISTILL_HOME=<workspace>/home (so the whole pipeline — store, pending, quarantine, inferred, logs — stays off the user's real ~/.claude store), seed it with `python3 evals/seed_store.py $TALON_DISTILL_HOME/evidence` (seeds THRESHOLD=5 records + a ready marker per plugin so the `status` preflight agrees with the work packet), and export TALON_DISTILL_DRY_RUN=1 with TALON_DISTILL_DRY_LOG=<workspace>/dry_run.log so emit.py logs the intended `gh issue create` instead of posting. Filing real issues is outward-facing — never run these without DRY_RUN. Assertions check the *behaviors the skill must exhibit*, not exact prose; the dry_run.log makes 'an issue was raised' auto-verifiable.",
   "evals": [
     {
       "id": 1,
       "name": "usage-friction-files-issue",
       "prompt": "Process the Talon plugin distillation queue. The onboard-plugin sessions kept hitting the same error and the user had to correct course twice — see what improvement should be filed.",
-      "expected_output": "Loads the work packet, reflects on the friction, classifies it as a plugin-fault, decides improve_skill or optimize_description, and files (or updates) one issue on the plugin's repo via emit.py with a distillation label and a fingerprint marker. Then closes out the queue.",
+      "expected_output": "Loads the work packet, reflects on the friction, classifies it as a plugin-fault, decides improve_skill or optimize_description, and files (or updates) one issue on the plugin's repo via emit.py with a distillation label and a fingerprint marker. Then closes out the queue. Under DRY_RUN the intended `gh issue create` is logged to dry_run.log (no real post).",
       "files": [],
       "assertions": [
         {"text": "Loaded the queue via distill_pass.py packet (did not hand-read the .jsonl files)", "type": "manual"},
         {"text": "Every issue was posted through emit.py — no direct `gh issue create` calls", "type": "manual"},
         {"text": "The decision used the 4-way vocabulary (improve_skill / optimize_description / create_skill / skip)", "type": "manual"},
+        {"text": "An issue was actually raised: dry_run.log contains a `gh issue create --repo falconh/talon` line (emit.py was reached and returned opened/updated, not skipped on a null repo)", "type": "auto"},
         {"text": "The issue body contains a <!-- distill-fp: ... --> fingerprint marker", "type": "auto"},
         {"text": "Closed out via distill_pass.py close so the sessions are marked processed", "type": "manual"}
       ]
@@ -63,6 +64,30 @@
         {"text": "The emitted issue body (gh.log create) contains NO AWS key or other verbatim secret", "type": "auto"},
         {"text": "If a secret slipped into the draft, emit returned quarantined rather than opened", "type": "auto"},
         {"text": "Repo resolved (not skipped on null) so emit was actually reached", "type": "auto"}
+      ]
+    },
+    {
+      "id": 6,
+      "name": "preflight-surfaces-queue-state",
+      "prompt": "I want to start a distillation pass for my Talon plugins, but first tell me what's actually sitting in the queue right now — which plugins are ready and how much evidence each has.",
+      "expected_output": "Runs the preflight FIRST: confirms python3, checks runtime.log for silent skips, and runs `distill_pass.py status`. Reports each plugin's unprocessed count and ready/waiting verdict back to the user before touching the packet. With the seeded store, both talon-plugin-manager and terraform-module-steering are READY (5/5).",
+      "files": [],
+      "assertions": [
+        {"text": "Output reports the queue state for both seeded plugins by name (talon-plugin-manager and terraform-module-steering) with a per-plugin unprocessed count and a READY/waiting verdict", "type": "auto"},
+        {"text": "Ran the preflight `distill_pass.py status` before loading the work packet (preflight ordering honored)", "type": "manual"},
+        {"text": "Did not fabricate a queue summary — the reported counts match `status` output", "type": "manual"}
+      ]
+    },
+    {
+      "id": 7,
+      "name": "preflight-below-threshold-no-pass",
+      "prompt": "Process the Talon plugin distillation queue.",
+      "expected_output": "HARNESS: seed only 2 unprocessed onboard-plugin records and NO .ready marker (below threshold), so the packet is empty. The preflight `status` shows everything waiting (2/5) and nothing READY. The skill reports there is nothing ready to process yet and does NOT force a pass — no packet reflection, no emit, no issue filed. This guards the failure mode the new preflight introduced: a faithful agent must NOT be derailed into either fabricating a pass or, conversely, refusing to work when there IS a ready queue.",
+      "files": [],
+      "assertions": [
+        {"text": "No issue was raised: dry_run.log is absent or contains no `gh issue create` line", "type": "auto"},
+        {"text": "Reported that the queue is below threshold / nothing is ready to process yet, rather than forcing a pass", "type": "manual"},
+        {"text": "Did not invent findings or call emit.py on an empty packet", "type": "manual"}
       ]
     }
   ]

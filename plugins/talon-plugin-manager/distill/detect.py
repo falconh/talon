@@ -6,9 +6,10 @@ import os
 import re
 
 from transcript import ToolCall
+from paths import under
 
 _PATH_TOOLS = {"Edit", "Write", "Read", "NotebookEdit"}
-INFERRED_DIR = os.path.expanduser("~/.claude/talon-distill/inferred")
+INFERRED_DIR = under("inferred")
 
 
 def _glob_to_regex(glob: str) -> str:

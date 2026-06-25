@@ -8,11 +8,12 @@ import sys
 
 import issues
 from fingerprint import finding_fingerprint, marker
+from paths import under
 from quarantine import QUARANTINE_DIR, quarantine
 from redact import scan_secrets
 
-DENYLIST_FILE = os.path.expanduser("~/.claude/talon-distill/denylist.txt")
-PENDING_DIR = os.path.expanduser("~/.claude/talon-distill/pending")
+DENYLIST_FILE = under("denylist.txt")
+PENDING_DIR = under("pending")
 
 
 def _defer(finding: dict, fp: str, body: str, pending_dir: str = PENDING_DIR) -> str:

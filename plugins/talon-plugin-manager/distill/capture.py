@@ -14,6 +14,7 @@ from detect import detect_usage, load_domain_map, under_triggered
 from windows import per_plugin_friction
 from evidence import EVIDENCE_DIR, EvidenceRecord, upsert_evidence
 from batch import should_run_batch, mark_ready, unprocessed_count
+from paths import under
 
 DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
 
@@ -42,7 +43,7 @@ def _write_capture_log(store_dir: str, session_id: str, wrote: list[str],
 # (a subprocess of python, not a gated tool call), so we never allow `Bash(gh:*)` globally —
 # allowing python3 inside this bounded child session is enough to run the whole pipeline.
 AUTO_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Write", "Bash(python3:*)", "Bash(mkdir:*)", "Bash(cat:*)"]
-PENDING_DIR = os.path.expanduser("~/.claude/talon-distill/pending")
+PENDING_DIR = under("pending")
 
 
 def _spawn_env(plugin: str) -> dict:
