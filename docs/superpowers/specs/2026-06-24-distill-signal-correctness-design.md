@@ -2,7 +2,7 @@
 
 **Status:** Draft (design phase) · **Date:** 2026-06-24 · **Owner:** falconh
 **Base:** `origin/master` @ `b6c3249` · **Branch:** `distill-signal-correctness`
-**Touches:** `plugins/talon-plugin-manager/distill/{transcript,capture,evidence,distill_pass}.py`, `distill/capture-hook.sh`, `skills/distill-plugin/SKILL.md` (`friction.py` is read but unchanged — `scan_friction` keeps its signature)
+**Touches:** create `distill/windows.py`; modify `plugins/talon-plugin-manager/distill/{transcript,detect,capture,evidence,batch,distill_pass}.py`, `distill/capture-hook.sh`, `skills/distill-plugin/SKILL.md` (`friction.py` is read but unchanged — `scan_friction` keeps its signature)
 
 ## Problem & Goal
 
@@ -90,14 +90,26 @@ parent design (§2) always intended.
     `user_events: list[tuple[int, str]]` (seq, text) for windowing.
   - A single incrementing counter advances on each captured tool_use **and** each captured
     user text, so seqs interleave correctly.
-- **`capture.py`** — compute friction **per plugin** over that plugin's window instead of
-  once per session:
-  - `usage`: window = `[seq_of_first_Skill_call_named "<plugin>:*", next_different_talon_skill_seq)`
-    (or end of session). Tool calls and user_events whose seq falls in the window feed
+- **`detect.py`** — add `domain_match_seqs(calls, sig) -> list[int]` returning the `seq`s of
+  the calls that match a plugin's domain signal (so under-trigger spans can be located).
+- **`windows.py` (new)** — `per_plugin_friction(parsed, used, under, domain_map) -> {plugin:
+  friction_dict}`. Owns the window computation (single responsibility, unit-tested in
+  isolation); calls the unchanged `scan_friction` per window.
+- **`capture.py`** — replace the one session-global `scan_friction` call with
+  `per_plugin_friction(...)` and stamp each record with `friction_map[plugin]`. The window
+  rule per plugin:
+  - `usage`: window starts at the first `Skill` call named `<plugin>:*` and ends at the
+    **earliest** of: (a) the next `Skill` call (any plugin), (b) the start of another
+    plugin's under-trigger domain span, or (c) end of session. The under-trigger boundary
+    (b) is load-bearing: without it, a single-skill session would extend the usage window
+    to end-of-session and re-swallow unrelated domain friction — reintroducing the exact
+    bleed this fixes. Tool calls and user_events whose seq falls in `[start, end)` feed
     `scan_friction`.
   - `under_trigger`: no Skill anchor exists; window = `[first_domain_match_seq,
-    last_domain_match_seq]` over the calls that matched this plugin's `domain_globs`/
-    `domain_cmds`, with the user_events in that span.
+    last_domain_match_seq]` (inclusive) over the calls that matched this plugin's
+    `domain_globs`/`domain_cmds`, with the user_events in that span.
+  - Because `under_triggered = detect_domain − detect_usage`, a plugin is never both `usage`
+    and `under_trigger` in one session, so the two window kinds never collide for one plugin.
   - Build the windowed `list[ToolCall]` + `list[str]` (texts from the in-window
     user_events) and call the **unchanged** `scan_friction(window_calls, window_texts)`.
 - **`friction.py`** — signature unchanged (`scan_friction(calls, user_texts)`); it keeps
