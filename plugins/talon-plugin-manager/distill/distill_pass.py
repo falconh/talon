@@ -11,8 +11,9 @@ from registry import load_talon_registry, resolve_repo
 from evidence import EVIDENCE_DIR, read_evidence, dedupe_evidence
 from pass_state import ready_plugins, mark_processed, clear_ready, compact_processed
 from trajectory import build_trajectory
+from paths import installed_plugins
 
-DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
+DEFAULT_INSTALLED = installed_plugins()
 
 
 def resolve_repo_by_skill(skills_used: list[str], registry: dict[str, str]) -> str | None:

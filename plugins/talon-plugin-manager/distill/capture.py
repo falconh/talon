@@ -14,9 +14,9 @@ from detect import detect_usage, load_domain_map, under_triggered
 from windows import per_plugin_friction
 from evidence import EVIDENCE_DIR, EvidenceRecord, upsert_evidence
 from batch import should_run_batch, mark_ready, unprocessed_count
-from paths import under
+from paths import under, installed_plugins
 
-DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
+DEFAULT_INSTALLED = installed_plugins()
 
 
 def _capture_log_path(store_dir: str) -> str:

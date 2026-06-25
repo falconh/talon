@@ -40,6 +40,26 @@ class TestPaths(unittest.TestCase):
         self.assertEqual(paths.home(), os.path.expanduser("~/somewhere-distill"))
 
 
+class TestInstalledOverride(unittest.TestCase):
+    def setUp(self):
+        self._saved = os.environ.get("TALON_DISTILL_INSTALLED")
+
+    def tearDown(self):
+        if self._saved is None:
+            os.environ.pop("TALON_DISTILL_INSTALLED", None)
+        else:
+            os.environ["TALON_DISTILL_INSTALLED"] = self._saved
+
+    def test_default_registry_path_when_unset(self):
+        os.environ.pop("TALON_DISTILL_INSTALLED", None)
+        self.assertEqual(paths.installed_plugins(),
+                         os.path.expanduser("~/.claude/plugins/installed_plugins.json"))
+
+    def test_env_overrides_registry_path(self):
+        os.environ["TALON_DISTILL_INSTALLED"] = "/tmp/fake/installed_plugins.json"
+        self.assertEqual(paths.installed_plugins(), "/tmp/fake/installed_plugins.json")
+
+
 class TestStoreOverrideEndToEnd(unittest.TestCase):
     """A subprocess (the real eval entrypoint) that exports TALON_DISTILL_HOME must
     resolve the default store to the override — never the user's real ~/.claude store."""

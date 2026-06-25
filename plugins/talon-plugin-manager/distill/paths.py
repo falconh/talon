@@ -25,3 +25,12 @@ def home() -> str:
 def under(*parts: str) -> str:
     """A path under the distill root."""
     return os.path.join(home(), *parts)
+
+
+def installed_plugins() -> str:
+    """Path to Claude's installed-plugins registry. TALON_DISTILL_INSTALLED overrides
+    it so evals resolve a fake registry (controlling repo + domain_declared) instead of
+    the user's real one — the registry is the other real-machine dependency besides the
+    store, so an eval isn't truly hermetic without overriding both."""
+    return os.environ.get("TALON_DISTILL_INSTALLED") or os.path.expanduser(
+        "~/.claude/plugins/installed_plugins.json")

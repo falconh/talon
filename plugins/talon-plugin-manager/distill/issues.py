@@ -51,6 +51,16 @@ def _dry_runner(args: list[str]) -> tuple[int, str, str]:
     except OSError:
         pass
     if args[:3] == ["gh", "issue", "list"]:
+        # By default a dry run finds no existing issue (so a clean finding "opens").
+        # TALON_DISTILL_DRY_EXISTING simulates a prior issue carrying the searched
+        # fingerprint, so the dedup/reopen path is exercisable offline; the state
+        # (OPEN -> updated, CLOSED -> reopened) is set by TALON_DISTILL_DRY_EXISTING_STATE.
+        if os.environ.get("TALON_DISTILL_DRY_EXISTING"):
+            fp = args[args.index("--search") + 1] if "--search" in args else ""
+            state = os.environ.get("TALON_DISTILL_DRY_EXISTING_STATE", "OPEN")
+            existing = [{"number": 1, "state": state,
+                         "body": f"<!-- distill-fp: {fp} -->", "title": "existing (dry)"}]
+            return 0, json.dumps(existing), ""
         return 0, "[]", ""
     if args[:3] == ["gh", "issue", "create"]:
         return 0, "https://github.com/DRY-RUN/repo/issues/0\n", ""
