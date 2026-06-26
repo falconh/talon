@@ -81,6 +81,31 @@ class TestEmit(unittest.TestCase):
             self.assertTrue(res["path"].startswith(pend))
             self.assertTrue(os.path.exists(res["path"]))
 
+    def test_dry_run_opens_by_default_and_dedups_with_existing_env(self):
+        import os
+        saved = {k: os.environ.get(k) for k in
+                 ("TALON_DISTILL_DRY_RUN", "TALON_DISTILL_DRY_EXISTING",
+                  "TALON_DISTILL_DRY_EXISTING_STATE", "TALON_DISTILL_DRY_LOG")}
+        try:
+            with tempfile.TemporaryDirectory() as q, tempfile.TemporaryDirectory() as log:
+                os.environ["TALON_DISTILL_DRY_RUN"] = "1"
+                os.environ["TALON_DISTILL_DRY_LOG"] = os.path.join(log, "dry.log")
+                os.environ.pop("TALON_DISTILL_DRY_EXISTING", None)
+                # default dry run: no prior issue -> opened
+                self.assertEqual(emit_finding(BASE, quarantine_dir=q)["status"], "opened")
+                # simulate a prior OPEN issue with the same fingerprint -> updated
+                os.environ["TALON_DISTILL_DRY_EXISTING"] = "1"
+                self.assertEqual(emit_finding(BASE, quarantine_dir=q)["status"], "updated")
+                # simulate a prior CLOSED issue -> reopened
+                os.environ["TALON_DISTILL_DRY_EXISTING_STATE"] = "CLOSED"
+                self.assertEqual(emit_finding(BASE, quarantine_dir=q)["status"], "reopened")
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
     def test_api_backend_opens_via_http(self):
         import issues
         http = FakeHttp([(200, {"items": []}), (201, {"html_url": "https://github.com/o/r/issues/9"})])

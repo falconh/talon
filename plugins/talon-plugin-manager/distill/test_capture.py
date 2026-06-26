@@ -7,6 +7,7 @@ HERE = os.path.dirname(__file__)
 FIXDIR = os.path.join(HERE, "fixtures")
 USAGE = os.path.join(FIXDIR, "transcript_usage.jsonl")
 UNDER = os.path.join(FIXDIR, "transcript_under_trigger.jsonl")
+BLEED = os.path.join(FIXDIR, "transcript_friction_bleed.jsonl")
 
 
 def installed_with(tmp, mapping):
@@ -65,11 +66,52 @@ class TestCapture(unittest.TestCase):
             self.assertEqual(rec["repo"], "falconh/talon")                       # captured at capture time
             self.assertEqual(rec["skills_used"], ["talon-plugin-manager:onboard-plugin"])  # real skill id
 
+    def test_friction_is_localized_per_plugin(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            ip = installed_with(d, {"talon-plugin-manager": "",
+                                    "terraform-module-steering": FIXDIR})
+            payload = {"session_id": "s", "transcript_path": BLEED, "cwd": "/x",
+                       "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            from evidence import read_evidence
+            tpm = read_evidence(store, "talon-plugin-manager")[0]["friction"]
+            tms = read_evidence(store, "terraform-module-steering")[0]["friction"]
+            self.assertFalse(tpm["has_tool_errors"])   # clean usage window
+            self.assertEqual(tpm["error_count"], 0)
+            self.assertTrue(tms["has_tool_errors"])     # errors localized to under-trigger
+            self.assertEqual(tms["error_count"], 2)
+
     def test_threshold_sets_ready_marker(self):
         with tempfile.TemporaryDirectory() as d:
             store = os.path.join(d, "store")
             ip = installed_with(d, {"talon-plugin-manager": ""})
-            payload = {"session_id": "s", "transcript_path": USAGE, "cwd": "/x", "hook_event_name": "SessionEnd"}
-            for _ in range(5):
+            for i in range(5):
+                payload = {"session_id": f"s{i}", "transcript_path": USAGE, "cwd": "/x",
+                           "hook_event_name": "SessionEnd"}
                 run_capture(payload, store, ip, n_threshold=5)
             self.assertTrue(os.path.exists(os.path.join(store, "talon-plugin-manager.ready")))
+
+    def test_capture_is_idempotent_per_session(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            ip = installed_with(d, {"talon-plugin-manager": ""})
+            payload = {"session_id": "dup", "transcript_path": USAGE, "cwd": "/x",
+                       "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            run_capture(payload, store, ip)   # same session again (e.g. resume)
+            from evidence import read_evidence
+            self.assertEqual(len(read_evidence(store, "talon-plugin-manager")), 1)
+
+    def test_capture_writes_audit_log(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = os.path.join(d, "store")
+            ip = installed_with(d, {"talon-plugin-manager": ""})
+            payload = {"session_id": "s", "transcript_path": USAGE, "cwd": "/x",
+                       "hook_event_name": "SessionEnd"}
+            run_capture(payload, store, ip)
+            log = os.path.join(d, "capture.log")   # sibling of the store dir
+            self.assertTrue(os.path.exists(log))
+            content = open(log).read()
+            self.assertIn("session=s", content)
+            self.assertIn("talon-plugin-manager", content)

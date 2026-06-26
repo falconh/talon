@@ -13,12 +13,14 @@ class ToolCall:
     input: dict
     is_error: bool = False
     result_text: str = ""
+    seq: int = -1
 
 
 @dataclass
 class ParsedTranscript:
     tool_calls: list[ToolCall] = field(default_factory=list)
     user_texts: list[str] = field(default_factory=list)
+    user_events: list[tuple[int, str]] = field(default_factory=list)
 
 
 def _blocks(obj: dict) -> list:
@@ -33,6 +35,7 @@ def _blocks(obj: dict) -> list:
 def parse_transcript(path: str) -> ParsedTranscript:
     out = ParsedTranscript()
     by_id: dict[str, ToolCall] = {}
+    seq = 0
     try:
         fh = open(path, encoding="utf-8")
     except OSError:
@@ -52,7 +55,8 @@ def parse_transcript(path: str) -> ParsedTranscript:
                     continue
                 btype = b.get("type")
                 if btype == "tool_use":
-                    call = ToolCall(id=b.get("id", ""), name=b.get("name", ""), input=b.get("input") or {})
+                    call = ToolCall(id=b.get("id", ""), name=b.get("name", ""), input=b.get("input") or {}, seq=seq)
+                    seq += 1
                     out.tool_calls.append(call)
                     if call.id:
                         by_id[call.id] = call
@@ -65,4 +69,6 @@ def parse_transcript(path: str) -> ParsedTranscript:
                     text = (b.get("text") or "").strip()
                     if text:
                         out.user_texts.append(text)
+                        out.user_events.append((seq, text))
+                        seq += 1
     return out

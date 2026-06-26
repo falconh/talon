@@ -8,11 +8,12 @@ import os
 import sys
 
 from registry import load_talon_registry, resolve_repo
-from evidence import EVIDENCE_DIR, read_evidence
+from evidence import EVIDENCE_DIR, read_evidence, dedupe_evidence
 from pass_state import ready_plugins, mark_processed, clear_ready, compact_processed
 from trajectory import build_trajectory
+from paths import installed_plugins
 
-DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
+DEFAULT_INSTALLED = installed_plugins()
 
 
 def resolve_repo_by_skill(skills_used: list[str], registry: dict[str, str]) -> str | None:
@@ -44,11 +45,45 @@ def _packet_repo(install_path: str, records: list[dict], registry: dict[str, str
     return resolve_repo_by_skill(skills, registry)
 
 
+def status_rows(store_dir: str, n_threshold: int = 5) -> list[dict]:
+    rows: list[dict] = []
+    if not os.path.isdir(store_dir):
+        return rows
+    for fn in sorted(os.listdir(store_dir)):
+        if not fn.endswith(".jsonl"):
+            continue
+        plugin = fn[: -len(".jsonl")]
+        recs = dedupe_evidence(read_evidence(store_dir, plugin))
+        unprocessed = [r for r in recs if not r.get("processed", False)]
+        last = max((r.get("captured_at", "") for r in recs), default="")
+        rows.append({
+            "plugin": plugin,
+            "unprocessed": len(unprocessed),
+            "total": len(recs),
+            "last_captured": last,
+            "ready": len(unprocessed) >= n_threshold,
+        })
+    return rows
+
+
+def format_status(store_dir: str, n_threshold: int = 5) -> str:
+    rows = status_rows(store_dir, n_threshold)
+    if not rows:
+        return "no evidence captured yet"
+    out = []
+    for r in rows:
+        verdict = "READY" if r["ready"] else f"waiting ({r['unprocessed']}/{n_threshold})"
+        out.append(f"{r['plugin']}: {r['unprocessed']} unprocessed, "
+                   f"last {r['last_captured'] or '-'} -> {verdict}")
+    return "\n".join(out)
+
+
 def build_packet(store_dir: str, registry: dict[str, str], clip: int = 200) -> dict:
     plugins: list[dict] = []
     for plugin in ready_plugins(store_dir):
         install_path = registry.get(plugin, "")
-        records = [r for r in read_evidence(store_dir, plugin) if not r.get("processed", False)]
+        records = [r for r in dedupe_evidence(read_evidence(store_dir, plugin))
+                   if not r.get("processed", False)]
         sessions = [{
             "session_id": r.get("session_id", ""),
             "kind": r.get("kind", ""),
@@ -82,6 +117,9 @@ def main(argv: list[str]) -> int:
         compact_processed(store, plugin)
         clear_ready(store, plugin)
         print(f"closed {plugin}: {len(sessions)} session(s)")
+    elif cmd == "status":
+        store = rest[0] if rest else EVIDENCE_DIR
+        print(format_status(store))
     else:
         return 1
     return 0

@@ -1,4 +1,6 @@
+import json
 import os
+import tempfile
 import unittest
 from transcript import parse_transcript
 
@@ -26,3 +28,21 @@ class TestTranscript(unittest.TestCase):
         p = parse_transcript("/no/file.jsonl")
         self.assertEqual(p.tool_calls, [])
         self.assertEqual(p.user_texts, [])
+
+    def test_seq_interleaves_tool_calls_and_user_texts(self):
+        rows = [
+            {"type": "user", "message": {"role": "user", "content": "hi"}},
+            {"type": "assistant", "message": {"role": "assistant",
+                "content": [{"type": "tool_use", "id": "a", "name": "Bash", "input": {"command": "ls"}}]}},
+            {"type": "user", "message": {"role": "user",
+                "content": [{"type": "text", "text": "thanks"}]}},
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "t.jsonl")
+            with open(p, "w") as fh:
+                for o in rows:
+                    fh.write(json.dumps(o) + "\n")
+            parsed = parse_transcript(p)
+        assert parsed.tool_calls[0].seq == 1
+        assert parsed.user_events == [(0, "hi"), (2, "thanks")]
+        assert parsed.user_texts == ["hi", "thanks"]

@@ -11,18 +11,39 @@ from datetime import datetime, timezone
 from registry import load_talon_registry, resolve_repo
 from transcript import parse_transcript
 from detect import detect_usage, load_domain_map, under_triggered
-from friction import scan_friction
-from evidence import EVIDENCE_DIR, EvidenceRecord, append_evidence
-from batch import should_run_batch, mark_ready
+from windows import per_plugin_friction
+from evidence import EVIDENCE_DIR, EvidenceRecord, upsert_evidence
+from batch import should_run_batch, mark_ready, unprocessed_count
+from paths import under, installed_plugins
 
-DEFAULT_INSTALLED = os.path.expanduser("~/.claude/plugins/installed_plugins.json")
+DEFAULT_INSTALLED = installed_plugins()
+
+
+def _capture_log_path(store_dir: str) -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(store_dir)), "capture.log")
+
+
+def _write_capture_log(store_dir: str, session_id: str, wrote: list[str],
+                       used: set[str], under: set[str]) -> None:
+    try:
+        line = (
+            f"{datetime.now(timezone.utc).isoformat()} session={session_id or '-'} "
+            f"wrote={sorted(wrote)} used={sorted(used)} under={sorted(under)} "
+            f"unprocessed={{{', '.join(f'{p!r}: {unprocessed_count(store_dir, p)}' for p in sorted(wrote))}}}"
+        )
+        path = _capture_log_path(store_dir)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except Exception:
+        pass
 
 
 # Tools the headless auto-pass needs. gh is reached transitively via `python3 emit.py`
 # (a subprocess of python, not a gated tool call), so we never allow `Bash(gh:*)` globally —
 # allowing python3 inside this bounded child session is enough to run the whole pipeline.
 AUTO_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Write", "Bash(python3:*)", "Bash(mkdir:*)", "Bash(cat:*)"]
-PENDING_DIR = os.path.expanduser("~/.claude/talon-distill/pending")
+PENDING_DIR = under("pending")
 
 
 def _spawn_env(plugin: str) -> dict:
@@ -74,7 +95,7 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
     under = under_triggered(parsed.tool_calls, names, domain_map)
     if not used and not under:
         return []
-    friction = scan_friction(parsed.tool_calls, parsed.user_texts).as_dict()
+    friction_map = per_plugin_friction(parsed, used, under, domain_map)
     captured_at = datetime.now(timezone.utc).isoformat()
     wrote: list[str] = []
     for plugin in sorted(used | under):
@@ -86,17 +107,18 @@ def run_capture(payload: dict, store_dir: str, installed_plugins_path: str,
             plugin=plugin,
             kind="usage" if plugin in used else "under_trigger",
             skills_used=skills_used,
-            friction=friction,
+            friction=friction_map[plugin],
             captured_at=captured_at,
             transcript_path=payload.get("transcript_path", ""),
             repo=resolve_repo(registry.get(plugin, "")) or "",
         )
-        append_evidence(store_dir, rec)
+        upsert_evidence(store_dir, rec)
         wrote.append(plugin)
         if should_run_batch(store_dir, plugin, n_threshold):
             mark_ready(store_dir, plugin)
             if spawner is not None:
                 spawner(plugin)
+    _write_capture_log(store_dir, payload.get("session_id", ""), wrote, used, under)
     return wrote
 
 

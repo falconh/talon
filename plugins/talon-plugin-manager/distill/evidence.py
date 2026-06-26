@@ -1,10 +1,13 @@
-"""Append-only per-plugin evidence store at ~/.claude/talon-distill/evidence/<plugin>.jsonl."""
+"""Append-only per-plugin evidence store at <distill-home>/evidence/<plugin>.jsonl
+(distill-home defaults to ~/.claude/talon-distill; see paths.py)."""
 from __future__ import annotations
 import json
 import os
 from dataclasses import asdict, dataclass
 
-EVIDENCE_DIR = os.path.expanduser("~/.claude/talon-distill/evidence")
+from paths import under
+
+EVIDENCE_DIR = under("evidence")
 
 
 @dataclass
@@ -48,3 +51,47 @@ def read_evidence(store_dir: str, plugin: str) -> list[dict]:
                 except json.JSONDecodeError:
                     continue
     return rows
+
+
+def dedupe_evidence(rows: list[dict]) -> list[dict]:
+    """Collapse to one record per session_id: prefer a processed record, else the newest
+    captured_at. Order-preserving by first appearance. Guards against pre-existing
+    duplicate captures inflating recurrence counts."""
+    best: dict[str, dict] = {}
+    order: list[str] = []
+    for r in rows:
+        sid = r.get("session_id", "")
+        if sid not in best:
+            best[sid] = r
+            order.append(sid)
+            continue
+        cur = best[sid]
+        if r.get("processed") and not cur.get("processed"):
+            best[sid] = r
+        elif bool(r.get("processed")) == bool(cur.get("processed")) and \
+                str(r.get("captured_at", "")) >= str(cur.get("captured_at", "")):
+            best[sid] = r
+    return [best[s] for s in order]
+
+
+def upsert_evidence(store_dir: str, rec: EvidenceRecord) -> str:
+    """Idempotent write keyed on session_id: replace an existing unprocessed record for the
+    same session; skip if a processed one exists (already judged — never re-judge); else
+    append. Rewrites the per-plugin file atomically."""
+    os.makedirs(store_dir, exist_ok=True)
+    path = _store_path(store_dir, rec.plugin)
+    rows = read_evidence(store_dir, rec.plugin)
+    kept: list[dict] = []
+    for r in rows:
+        if r.get("session_id") == rec.session_id:
+            if r.get("processed"):
+                return path          # already judged; leave the file untouched
+            continue                 # drop the stale unprocessed record
+        kept.append(r)
+    kept.append(asdict(rec))
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        for d in kept:
+            fh.write(json.dumps(d, ensure_ascii=False) + "\n")
+    os.replace(tmp, path)
+    return path

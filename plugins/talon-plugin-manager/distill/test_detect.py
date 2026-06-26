@@ -1,7 +1,7 @@
 import os
 import unittest
 from transcript import parse_transcript, ToolCall
-from detect import detect_usage, detect_domain, under_triggered, load_domain_map
+from detect import detect_usage, detect_domain, under_triggered, load_domain_map, domain_match_seqs
 
 HERE = os.path.dirname(__file__)
 USAGE = os.path.join(HERE, "fixtures", "transcript_usage.jsonl")
@@ -71,3 +71,13 @@ class TestDetect(unittest.TestCase):
         from transcript import ToolCall
         calls = [ToolCall("w", "Write", {"file_path": "envs/prod/modules/vpc/main.tf"})]
         self.assertEqual(detect_domain(calls, DMAP), {"terraform-module-steering"})
+
+    def test_domain_match_seqs_returns_matching_call_seqs(self):
+        calls = [
+            ToolCall("a", "Write", {"file_path": "infra/main.tf"}, seq=0),
+            ToolCall("b", "Bash", {"command": "terraform init"}, seq=1),
+            ToolCall("c", "Bash", {"command": "ls -la"}, seq=2),
+            ToolCall("d", "Read", {"file_path": "README.md"}, seq=3),
+        ]
+        sig = {"globs": ["**/*.tf"], "cmds": ["terraform", "tofu"]}
+        self.assertEqual(domain_match_seqs(calls, sig), [0, 1])

@@ -4,7 +4,9 @@ import json
 import os
 from datetime import datetime, timezone
 
-QUARANTINE_DIR = os.path.expanduser("~/.claude/talon-distill/_quarantine")
+from paths import under
+
+QUARANTINE_DIR = under("_quarantine")
 
 
 def quarantine(finding: dict, reason: str, quarantine_dir: str = QUARANTINE_DIR) -> str:

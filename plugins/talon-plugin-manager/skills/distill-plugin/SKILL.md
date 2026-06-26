@@ -23,6 +23,13 @@ accumulated. You process that queue.
 
 All helper scripts live in `${CLAUDE_PLUGIN_ROOT}/distill/`. Run them with `python3`.
 
+All distill state — the evidence store, `.ready` markers, `pending/`, `_quarantine/`, the
+`inferred/` map, and the logs — lives under `$TALON_DISTILL_HOME` (default
+`~/.claude/talon-distill`); the paths below show that default. The pipeline scripts honor the
+override, so an eval harness or the headless auto-pass can point the whole pipeline at a
+throwaway tree instead of the real store. When `$TALON_DISTILL_HOME` is set, use it for every
+path below.
+
 ## Preflight (do this first)
 
 The whole pipeline runs on `python3`, and the `SessionEnd` capture hook does too — but not every
@@ -34,6 +41,11 @@ machine has it. Before anything else:
 2. **Surface silent skips.** If `~/.claude/talon-distill/runtime.log` exists, read it. Each line is a
    past session where capture was skipped because `python3` was missing. If there are entries, report
    to the user that those sessions were not captured before continuing.
+3. **Check the queue.** Run `python3 ${CLAUDE_PLUGIN_ROOT}/distill/distill_pass.py status`.
+   It lists each plugin's unprocessed evidence count, last capture time, and whether the
+   batch threshold is met. If everything is below threshold, there may be nothing to
+   process yet — say so rather than forcing a pass. (For the silent async hook's own
+   stderr, see `~/.claude/talon-distill/capture-hook.err` and `capture.log`.)
 
 ## Absolute rules
 
@@ -52,7 +64,7 @@ machine has it. Before anything else:
 
 ## Pipeline
 
-The store dir `<STORE>` is `~/.claude/talon-distill/evidence`.
+The store dir `<STORE>` is `$TALON_DISTILL_HOME/evidence` (default `~/.claude/talon-distill/evidence`).
 
 1. **Load the work packet (one call).**
    `python3 ${CLAUDE_PLUGIN_ROOT}/distill/distill_pass.py packet <STORE>`

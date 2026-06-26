@@ -6,9 +6,10 @@ import os
 import re
 
 from transcript import ToolCall
+from paths import under
 
 _PATH_TOOLS = {"Edit", "Write", "Read", "NotebookEdit"}
-INFERRED_DIR = os.path.expanduser("~/.claude/talon-distill/inferred")
+INFERRED_DIR = under("inferred")
 
 
 def _glob_to_regex(glob: str) -> str:
@@ -111,6 +112,27 @@ def detect_domain(calls: list[ToolCall], domain_map: dict[str, dict]) -> set[str
         if cmd_hit or glob_hit:
             active.add(plugin)
     return active
+
+
+def domain_match_seqs(calls: list[ToolCall], sig: dict) -> list[int]:
+    """Seqs of the calls that match a plugin's domain signal (file globs or CLI cmds).
+    Used to locate the span of under-trigger domain activity within a session."""
+    globs = sig.get("globs", [])
+    cmds = sig.get("cmds", [])
+    out: list[int] = []
+    for c in calls:
+        hit = False
+        if c.name in _PATH_TOOLS:
+            p = c.input.get("file_path") or c.input.get("notebook_path")
+            if p and any(_glob_match(str(p), g) for g in globs):
+                hit = True
+        if not hit and c.name == "Bash":
+            command = str(c.input.get("command", ""))
+            if any(re.search(rf"\b{re.escape(cmd)}\b", command) for cmd in cmds):
+                hit = True
+        if hit:
+            out.append(c.seq)
+    return out
 
 
 def under_triggered(calls: list[ToolCall], registry_names: set[str], domain_map: dict[str, dict]) -> set[str]:
