@@ -35,7 +35,7 @@
       "name": "talon-plugin-manager",
       "source": "./plugins/talon-plugin-manager",
       "description": "Maintainer plugin: onboard, release, and distill plugins on the Talon marketplace (dual Claude Code + Codex, naming, semver bump + tag, PR-only).",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "author": {
         "name": "falconh"
       }
