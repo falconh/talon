@@ -19,12 +19,6 @@
       "prompt": "What should I name the repo for a new Datadog monitors plugin, and what do I need in it before it can go on talon?",
       "expected_output": "Suggests a concise, purpose-reflecting name like datadog-monitors via the naming thought process (no marketplace prefix; repo name == plugin name; kebab-case; domain-named so it survives growth). Notes grouping via a GitHub topic instead of a prefix. Requires both .claude-plugin/plugin.json and .codex-plugin/plugin.json, skills/<skill>/SKILL.md with both name and description, a version, and a vX.Y.Z tag to pin from talon. All changes via PR.",
       "files": []
-    },
-    {
-      "id": 4,
-      "prompt": "Cut a new release of my pg-migrations plugin \u2014 it's already on talon. It works on **/*.sql files and runs the `migrate` CLI, but I just noticed it never shipped a distill.json.",
-      "expected_output": "In Flow B, backfills the missing distill.json before releasing: recognizes pg-migrations has a clear domain, offers to add a distill.json at the plugin root (domain_globs **/*.sql, domain_cmds migrate) as part of the content PR, then bumps version in both manifests and re-pins talon. Skips distill.json only for a plugin with no file/command surface.",
-      "files": []
     }
   ]
 }

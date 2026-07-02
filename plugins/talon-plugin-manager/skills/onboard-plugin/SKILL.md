@@ -159,21 +159,7 @@ one as you go rather than reproducing JSON from memory.
    using the templates. For a remote source, pin `ref` to the release tag `vX.Y.Z` and set the
    Claude entry's `version` to match. Update the README's plugins table if there is one.
 
-5. **Offer a `distill.json` (optional, non-blocking).** If the plugin has a clear domain — a file
-   type or CLI it works with — offer to add a `distill.json` at the plugin root (e.g.
-   `{ "domain_globs": ["**/*.tf"], "domain_cmds": ["terraform", "tofu"] }`) so `distill-plugin` can
-   detect when the plugin *should* have fired but didn't. Schema, precedence, and the keep-it-tight
-   guidance: `${CLAUDE_PLUGIN_ROOT}/references/domain-signals.md`. Skip it for plugins with no
-   obvious file/command surface; if skipped, the distiller can still infer and cache signals later —
-   a shipped `distill.json` just makes it precise and explicit.
-
-   When you offer this, flag the runtime dependency: distillation **capture** runs from the
-   `SessionEnd` hook via `python3`, so it only records evidence on machines where `python3` is on
-   PATH. Check it (`python3 --version`); where it's absent the hook skips capture and writes a line to
-   `~/.claude/talon-distill/runtime.log` (the `distill-plugin` skill surfaces these) — nothing breaks,
-   but no evidence accrues until `python3` is installed.
-
-6. **Verify**, then open the PR (see Verification below).
+5. **Verify**, then open the PR (see Verification below).
 
 ## Flow B — release an update (bump → tag → pin)
 
@@ -182,37 +168,27 @@ Use this whenever a plugin's content changes, or you are adding Codex support, o
 1. **Land the content change on the plugin repo via PR.** Branch, make the change, push, open a PR,
    and merge it. Do not tag yet.
 
-2. **Backfill `distill.json` if the plugin lacks one (brownfield parity with onboarding).** A plugin
-   onboarded before it had a domain map never got the Flow A offer, so check on every release: if the
-   plugin has a clear domain — a file type or CLI it works with — and ships no `distill.json` at its
-   root, offer to add one (e.g. `{ "domain_globs": ["**/*.tf"], "domain_cmds": ["terraform", "tofu"] }`)
-   as part of the step-1 content PR, so `distill-plugin` can detect when the plugin *should* have fired
-   but didn't. Schema, precedence, and the keep-it-tight guidance:
-   `${CLAUDE_PLUGIN_ROOT}/references/domain-signals.md`. Skip only for plugins with no obvious
-   file/command surface (a pure advisory skill) — note that it was considered. The same `python3`-on-PATH
-   capture caveat from Flow A step 5 applies.
-
-3. **Bump `version` in BOTH plugin manifests** (`.claude-plugin/plugin.json` and
+2. **Bump `version` in BOTH plugin manifests** (`.claude-plugin/plugin.json` and
    `.codex-plugin/plugin.json`) using semver:
    - **patch** (`x.y.Z`): docs, fixes, no behaviour change for consumers.
    - **minor** (`x.Y.0`): additive — new skill, new capability, **adding Codex support**.
    - **major** (`X.0.0`): breaking — removed/renamed skill, changed inputs/behaviour.
    Keep the two manifests on the **same** version. (This bump can be part of the step-1 PR.)
 
-4. **Tag the release on the plugin repo.** After the version-bump commit is on the default branch,
+3. **Tag the release on the plugin repo.** After the version-bump commit is on the default branch,
    create an **annotated** tag matching the existing convention (`v`-prefixed) and push it:
    `git tag -a vX.Y.Z -m "vX.Y.Z — <summary>" <sha> && git push origin vX.Y.Z`. **Local plugins** served
    from `./plugins/<name>` have no separate repo to tag — skip this step; the manifest bump is the
    release signal.
 
-5. **Pin talon to the new tag (a PR on talon).** In **both** catalogs, set the plugin entry's
+4. **Pin talon to the new tag (a PR on talon).** In **both** catalogs, set the plugin entry's
    `source.ref` to `vX.Y.Z`. In the Claude catalog also set the entry's `version` to `X.Y.Z`. This
    makes talon serve exactly the tagged release and is what propagates the update to users
    (`/plugin marketplace update talon` / `codex plugin marketplace upgrade talon`). For a **local**
    plugin there is no `ref` to pin — just set the Claude catalog entry's `version` to match the manifest
    (the Codex local entry has no version field).
 
-6. **Verify**, then open the PR.
+5. **Verify**, then open the PR.
 
 ## Verification (before every PR)
 
