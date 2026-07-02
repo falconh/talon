@@ -1,12 +1,22 @@
 {
   "hooks": {
-    "SessionEnd": [
+    "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/distill/capture-hook.sh\"",
-            "async": true
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/distill/feedback-session-start.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/distill/feedback_post_skill.py\""
           }
         ]
       }
