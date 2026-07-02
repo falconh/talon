@@ -32,6 +32,9 @@ def grade(run_dir):
 
 
 def main():
+    if len(sys.argv) < 2:
+        print("usage: grade.py <iteration_dir>", file=sys.stderr)
+        sys.exit(2)
     iteration = sys.argv[1]
     out = {}
     for eid, name in EVALS:

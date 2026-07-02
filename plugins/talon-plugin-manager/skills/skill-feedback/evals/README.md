@@ -16,22 +16,22 @@ Create a shim script (e.g., `~/tmp/gh`) that intercepts `gh issue create` calls:
 
 ```bash
 #!/bin/bash
-echo "gh $@" >> ~/tmp/gh-calls.log
+echo "gh "$@"" >> ~/tmp/gh-calls.log
 ```
 
 Ensure it's earlier on PATH than the real `gh`:
 
 ```bash
-export PATH=~/tmp:$PATH
+ORIGINAL_PATH="$PATH"; export PATH=~/tmp:$PATH
 command -v gh  # Should resolve to the shim
 ```
 
 ### 2. Back up and prepare the real store
-Back up `~/.talon_distill_home` (if it exists) and run each eval with a throwaway store directory:
+Back up `~/.claude/talon-distill` (if it exists) and run each eval with a throwaway store directory:
 
 ```bash
 mkdir -p ~/tmp/distill-evals
-cp -r ~/.talon_distill_home ~/tmp/distill-home-backup 2>/dev/null || true
+cp -r ~/.claude/talon-distill ~/tmp/distill-home-backup 2>/dev/null || true
 ```
 
 ### 3. Run the eval matrix
@@ -61,7 +61,7 @@ Expected outcomes:
 Check that the real store was not modified:
 
 ```bash
-find ~/.talon_distill_home -type f -exec sha256sum {} \; | sort > ~/tmp/store-after.txt
+find ~/.claude/talon-distill -type f -exec sha256sum {} \; | sort > ~/tmp/store-after.txt
 diff ~/tmp/store-before.txt ~/tmp/store-after.txt  # Should be empty
 ```
 
@@ -75,12 +75,12 @@ Remove the shim:
 
 ```bash
 rm ~/tmp/gh
-unset PATH  # Reset or adjust PATH back
+export PATH="$ORIGINAL_PATH"  # Restore the original PATH
 ```
 
 Restore the original store if needed:
 
 ```bash
-rm -rf ~/.talon_distill_home
-cp -r ~/tmp/distill-home-backup ~/.talon_distill_home
+rm -rf ~/.claude/talon-distill
+cp -r ~/tmp/distill-home-backup ~/.claude/talon-distill
 ```
