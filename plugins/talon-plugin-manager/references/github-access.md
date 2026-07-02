@@ -13,23 +13,25 @@ transports, tried in this order:
 
 If none are available, the work is **preserved, not lost** (see each skill below).
 
-## `distill-plugin` (filing issues) — mostly automatic
+## `skill-feedback` (filing issues) — mostly automatic
 
-`distill/emit.py` already implements transports 1 and 3 and **auto-selects**: `gh` if installed,
+`feedback_emit.py` already implements transports 1 and 3 and **auto-selects**: `gh` if installed,
 else the REST API if a token is set, else it **defers** — writing the (already-redacted) issue to
-`~/.claude/talon-distill/pending/<fp>.md` for later. So in most environments you just run `emit.py`
-and it does the right thing.
+`~/.claude/talon-distill/pending/<timestamp>-<id>.md` for later. So in most environments you just
+run `feedback_emit.py` and it does the right thing. There's no dedup/fingerprint lookup here — a
+human approves every finding before it's ever filed, so each run either opens a fresh issue or
+defers; it never searches for or comments on an existing one.
 
 To use the **MCP** transport (transport 2) — e.g. you have MCP tools but no `gh`/token, or you
 simply prefer them:
 
-1. Run `emit.py` with `TALON_DISTILL_DRY_RUN=1`. This still runs the **redaction gate** (scrub +
-   quarantine) and computes the fingerprint, and logs the intended issue (title/body/repo) instead
-   of posting. **Never post a body that hasn't been through `emit.py` first** — that gate is the
-   only thing keeping secrets out of public issues.
-2. Then, via the MCP tools, reproduce `emit.py`'s dedup: search the repo for the fingerprint
-   (`<!-- distill-fp: … -->`); if none → create the issue with the logged body + `distillation`
-   label; if an open one matches → add a comment; if a closed one matches → reopen + comment.
+1. Run `feedback_emit.py` (optionally with `TALON_DISTILL_DRY_RUN=1` to rehearse first). This still
+   runs the **redaction gate** (scrub + quarantine) before anything else. **Never post a body that
+   hasn't been through `feedback_emit.py` first** — that gate is the only thing keeping secrets out
+   of public issues.
+2. If the result was `deferred`, read the queued (already-redacted) draft from
+   `~/.claude/talon-distill/pending/` and create the issue via the MCP tools with that title/body,
+   unchanged, plus the `distill-feedback` label.
 
 ## `onboard-plugin` (raising PRs)
 
