@@ -16,7 +16,8 @@ class TestSessionStartDirective(unittest.TestCase):
         out = p.stdout.decode()
         self.assertIn("skill-feedback", out)
         self.assertIn("dissatisf", out.lower())
-        self.assertIn("not", out.lower())  # "when unsure, do not interrupt"
+        self.assertIn("do not interrupt", out.lower().replace("\n", " "))
+        self.assertIn("user", out.lower())
 
 
 if __name__ == "__main__":
