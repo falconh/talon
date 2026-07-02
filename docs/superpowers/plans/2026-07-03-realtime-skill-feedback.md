@@ -21,7 +21,7 @@
 - **Commits:** conventional-commit subjects; **every commit ends with** these two trailer lines:
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` and
   `Claude-Session: https://claude.ai/code/session_01752TtFnWo8ieDbs5ba2q5i`.
-- **Release is PR-only via the `onboard-plugin` skill** (Task 8) — never push to `master`; both catalogs move together.
+- **Release is PR-only via the `onboard-plugin` skill** (Task 9) — never push to `master`; both catalogs move together.
 
 All paths below are relative to the repo root. The distill dir is `plugins/talon-plugin-manager/distill/` (abbreviated `<D>/` in commands after a `cd`).
 
@@ -669,7 +669,7 @@ Done after the new path works, so nothing is orphaned mid-way. Delete the batche
 - `plugins/talon-plugin-manager/distill/{capture.py,capture-hook.sh,evidence.py,batch.py,windows.py,detect.py,transcript.py,trajectory.py,distill_pass.py,pass_state.py,fingerprint.py,emit.py,friction.py}`
 - Their tests: `plugins/talon-plugin-manager/distill/{test_capture.py,test_capture_hook.py,test_capture_spawn.py,test_evidence.py,test_batch.py,test_windows.py,test_detect.py,test_transcript.py,test_trajectory.py,test_distill_pass.py,test_pass_state.py,test_fingerprint.py,test_emit.py,test_friction.py,test_pipeline_e2e.py}`
 - `plugins/talon-plugin-manager/skills/distill-plugin/` (whole dir)
-- Obsolete references (verify first): `plugins/talon-plugin-manager/references/{auto-pass-setup.md,domain-signals.md}`
+- (`references/domain-signals.md` is removed in **Task 7**, together with the `onboard-plugin` guidance that links it, so the link and its target die in the same commit. Note: `references/auto-pass-setup.md` does **not** exist in this checkout — do not try to delete it.)
 
 **Retained (must remain):** `distill/{redact.py,quarantine.py,issues.py,registry.py,paths.py}` and their tests `distill/{test_redact.py,test_quarantine.py,test_issues.py,test_registry.py,test_paths.py}`, plus the Task 1–5 additions.
 
@@ -698,14 +698,13 @@ git rm distill/test_capture.py distill/test_capture_hook.py distill/test_capture
 git rm -r skills/distill-plugin
 ```
 
-- [ ] **Step 3: Remove obsolete references (verify each is unreferenced first)**
+- [ ] **Step 3: Confirm no dangling imports of deleted modules remain**
 
 ```bash
-cd plugins/talon-plugin-manager
-grep -rl "auto-pass-setup\|domain-signals" skills references 2>/dev/null   # inspect remaining referrers
-git rm references/auto-pass-setup.md references/domain-signals.md
+cd plugins/talon-plugin-manager/distill
+grep -rnE "import (capture|evidence|batch|windows|detect|transcript|trajectory|distill_pass|pass_state|fingerprint|emit|friction)\b|from (capture|evidence|batch|windows|detect|transcript|trajectory|distill_pass|pass_state|fingerprint|emit|friction) import" *.py
 ```
-If `grep` shows a surviving referrer (e.g. `onboard-plugin/SKILL.md` links `domain-signals.md`), open that file and remove the now-dead link/paragraph in the same commit, since under-trigger/`distill.json` guidance no longer applies.
+Expected: **no output**. `references/domain-signals.md` and the `onboard-plugin` `distill.json` guidance that links it are removed together in **Task 7** (not here), so the reference and its referrer die in one commit.
 
 - [ ] **Step 4: Run the full remaining suite**
 
@@ -721,7 +720,102 @@ git commit -m "refactor(distill): retire batched capture pipeline + distill-plug
 
 ---
 
-### Task 7: Judgment-layer eval scaffold
+### Task 7: Strip `distill.json` / under-trigger logic from `onboard-plugin`
+
+`distill.json` and its domain-signal map fed only under-trigger detection (`detect.py`), which is retired in Task 6. So the `onboard-plugin` skill must stop offering/backfilling `distill.json`, its eval for that behavior must go, and the shared `domain-signals.md` reference is deleted (here, with its last referrer).
+
+**Files:**
+- Modify: `plugins/talon-plugin-manager/skills/onboard-plugin/SKILL.md`
+- Modify: `plugins/talon-plugin-manager/skills/onboard-plugin/evals/evals.json`
+- Delete: `plugins/talon-plugin-manager/references/domain-signals.md`
+- Test: `plugins/talon-plugin-manager/distill/test_onboard_no_distill_json.py`
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# plugins/talon-plugin-manager/distill/test_onboard_no_distill_json.py
+"""onboard-plugin must no longer mention distill.json / under-trigger / domain-signals now that
+under-trigger detection is retired."""
+import json
+import os
+import unittest
+
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+SKILL = os.path.join(BASE, "skills", "onboard-plugin", "SKILL.md")
+EVALS = os.path.join(BASE, "skills", "onboard-plugin", "evals", "evals.json")
+REF = os.path.join(BASE, "references", "domain-signals.md")
+
+
+class TestOnboardCleaned(unittest.TestCase):
+    def test_skill_has_no_distill_json_mentions(self):
+        t = open(SKILL, encoding="utf-8").read().lower()
+        for term in ("distill.json", "domain-signals", "under-trigger", "under_trigger"):
+            self.assertNotIn(term, t, f"onboard SKILL.md still mentions {term}")
+
+    def test_evals_dropped_distill_backfill(self):
+        data = json.load(open(EVALS, encoding="utf-8"))
+        self.assertTrue(all("distill.json" not in json.dumps(e) for e in data["evals"]))
+        self.assertEqual(len(data["evals"]), 3)
+
+    def test_domain_signals_reference_deleted(self):
+        self.assertFalse(os.path.exists(REF))
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `cd plugins/talon-plugin-manager/distill && python3 -m pytest test_onboard_no_distill_json.py -q`
+Expected: FAIL — the mentions and the reference file still exist, and there are 4 evals.
+
+- [ ] **Step 3: Remove Flow A step 5 (the `distill.json` offer) and renumber**
+
+In `plugins/talon-plugin-manager/skills/onboard-plugin/SKILL.md`, delete the **entire** block from the line beginning `5. **Offer a \`distill.json\` (optional, non-blocking).**` through the end of its `python3`-capture caveat paragraph (the paragraph ending `…but no evidence accrues until \`python3\` is installed.`). Then renumber the next step:
+
+- Change `6. **Verify**, then open the PR (see Verification below).` → `5. **Verify**, then open the PR (see Verification below).`
+
+- [ ] **Step 4: Remove Flow B step 2 (the `distill.json` backfill) and renumber**
+
+In the same file, delete the **entire** block from `2. **Backfill \`distill.json\` if the plugin lacks one (brownfield parity with onboarding).**` through the end of that step (the sentence ending `The same \`python3\`-on-PATH capture caveat from Flow A step 5 applies.`). Then renumber the remaining Flow B steps:
+
+- `3. **Bump \`version\` in BOTH plugin manifests**` → `2. **Bump …**`
+- `4. **Tag the release on the plugin repo.**` → `3. **Tag …**`
+- `5. **Pin talon to the new tag (a PR on talon).**` → `4. **Pin …**`
+- `6. **Verify**, then open the PR.` → `5. **Verify**, then open the PR.`
+
+Note: this self-heals Flow A step 3's cross-reference `(Flow B step 3)` — after renumbering, Flow B step 3 is the Tag step again, which is what that reference means.
+
+- [ ] **Step 5: Remove the `distill.json` backfill eval**
+
+In `plugins/talon-plugin-manager/skills/onboard-plugin/evals/evals.json`, delete the eval object with `"id": 4` (the pg-migrations `distill.json` backfill), including the trailing comma after the `"id": 3` object so the array stays valid JSON. Result: 3 evals (ids 1–3).
+
+- [ ] **Step 6: Delete the now-orphaned reference**
+
+```bash
+git rm plugins/talon-plugin-manager/references/domain-signals.md
+```
+
+- [ ] **Step 7: Run test + JSON parse check to verify it passes**
+
+Run:
+```bash
+cd plugins/talon-plugin-manager/distill && python3 -m pytest test_onboard_no_distill_json.py -q
+python3 -c "import json; json.load(open('../skills/onboard-plugin/evals/evals.json'))" && echo "evals.json OK"
+```
+Expected: PASS; `evals.json OK`.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add -A
+git commit -m "refactor(onboard-plugin): drop distill.json/under-trigger offer, backfill, eval, reference"
+```
+
+---
+
+### Task 8: Judgment-layer eval scaffold
 
 The mechanical spine is unit-tested; detection quality (precision/recall on sentiment) is judged with the skill-creator matrix, sandboxed with a fake-`gh` PATH shim + `TALON_DISTILL_DRY_RUN` so no real post can happen. This task creates the eval definitions + grader; running the live matrix is the documented manual step (as validated in prior sessions).
 
@@ -858,7 +952,7 @@ git commit -m "test(skill-feedback): judgment-layer eval matrix (precision/recal
 
 ---
 
-### Task 8: Docs + release handoff
+### Task 9: Docs + release handoff
 
 **Files:**
 - Modify: `README.md` and/or `plugins/talon-plugin-manager/README.md` (whichever describes the plugin's skills) — inspect first.
@@ -893,11 +987,12 @@ Do **not** hand-edit versions/catalogs here. Invoke the `onboard-plugin` skill (
 - Three-way nudge (show-draft / just-file / no) + per-skill session fatigue guard → Task 5 flow.
 - Scrubbed excerpts + approval; fast path degrades to review on quarantine → Task 1 (quarantine) + Task 5 status handling.
 - Full replacement; under-trigger dropped → Task 6.
+- `distill.json`/under-trigger guidance, backfill, eval, and `domain-signals.md` reference stripped from `onboard-plugin` → **Task 7**.
 - No fingerprint dedup → Task 1 (no marker / no find_existing); `emit.py`+`fingerprint.py` retired in Task 6.
 - Reused spine → Task 1 imports; retained set enumerated in Task 6.
 - Error handling: quarantine, pending fallback, repo-resolution/scope, recursion guard, dry-run → Tasks 1, 3, 5.
-- Testing: deterministic unit tests (Tasks 1–5) + judgment-layer eval matrix (Task 7).
-- Migration/retirement + release semver → Tasks 6 and 8.
+- Testing: deterministic unit tests (Tasks 1–5, 7) + judgment-layer eval matrix (Task 8).
+- Migration/retirement + release semver → Tasks 6, 7, and 9.
 
 **Placeholder scan:** No TBD/TODO; every code step carries complete code; the one Claude Code wiring unknown (PostToolUse-on-Skill) is an explicit *manual verification step with a graceful-degradation fallback*, not a code placeholder.
 
