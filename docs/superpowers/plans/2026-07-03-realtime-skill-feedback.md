@@ -673,6 +673,8 @@ Done after the new path works, so nothing is orphaned mid-way. Delete the batche
 
 **Retained (must remain):** `distill/{redact.py,quarantine.py,issues.py,registry.py,paths.py}` and their tests `distill/{test_redact.py,test_quarantine.py,test_issues.py,test_registry.py,test_paths.py}`, plus the Task 1–5 additions.
 
+> **Amendment (found during execution):** `test_paths.py` also contains a `TestStoreOverrideEndToEnd` class that shells out (via `subprocess`, not imports — so a Step-1 import grep misses it) to the now-deleted `distill_pass.py` and `distill-plugin/evals/seed_store.py`. That class (and its `subprocess`/`sys`/`tempfile`/`HERE`-only uses) must be **removed** as part of this task — it tests the retired batched CLI. The two pure `paths.py` unit classes (`TestPaths`, `TestInstalledOverride`) stay; they already cover the `TALON_DISTILL_HOME`/`TALON_DISTILL_INSTALLED` overrides the new code relies on.
+
 - [ ] **Step 1: Confirm no retained code imports a to-be-deleted module**
 
 Run:

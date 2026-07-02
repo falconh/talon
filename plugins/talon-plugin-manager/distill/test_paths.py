@@ -1,14 +1,9 @@
-"""Tests for the TALON_DISTILL_HOME override (paths.py) that lets evals and the
-auto-pass run against a throwaway tree instead of the user's real evidence store."""
+"""Tests for the TALON_DISTILL_HOME override (paths.py) that lets evals run
+against a throwaway tree instead of the user's real evidence store."""
 import os
-import subprocess
-import sys
-import tempfile
 import unittest
 
 import paths
-
-HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestPaths(unittest.TestCase):
@@ -58,29 +53,6 @@ class TestInstalledOverride(unittest.TestCase):
     def test_env_overrides_registry_path(self):
         os.environ["TALON_DISTILL_INSTALLED"] = "/tmp/fake/installed_plugins.json"
         self.assertEqual(paths.installed_plugins(), "/tmp/fake/installed_plugins.json")
-
-
-class TestStoreOverrideEndToEnd(unittest.TestCase):
-    """A subprocess (the real eval entrypoint) that exports TALON_DISTILL_HOME must
-    resolve the default store to the override — never the user's real ~/.claude store."""
-
-    def _run(self, args, home):
-        env = dict(os.environ, TALON_DISTILL_HOME=home)
-        return subprocess.run([sys.executable, *args], cwd=HERE, env=env,
-                              capture_output=True, text=True)
-
-    def test_status_reads_env_pointed_store_without_explicit_arg(self):
-        with tempfile.TemporaryDirectory() as home:
-            seed = os.path.join(HERE, "..", "skills", "distill-plugin", "evals", "seed_store.py")
-            store = os.path.join(home, "evidence")
-            seeded = self._run([seed, store], home)
-            self.assertEqual(seeded.returncode, 0, seeded.stderr)
-
-            # status with NO store arg must fall back to the env-pointed EVIDENCE_DIR
-            res = self._run(["distill_pass.py", "status"], home)
-            self.assertEqual(res.returncode, 0, res.stderr)
-            self.assertIn("talon-plugin-manager", res.stdout)
-            self.assertIn("terraform-module-steering", res.stdout)
 
 
 if __name__ == "__main__":
