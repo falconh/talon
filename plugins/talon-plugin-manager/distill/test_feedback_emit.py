@@ -46,9 +46,6 @@ class TestFileFeedback(unittest.TestCase):
         self.assertTrue(os.listdir(self.pending))
 
     def test_denylist_term_quarantines(self):
-        res = feedback_emit.file_feedback(CLEAN, quarantine_dir=self.q, pending_dir=self.pending,
-                                          denylist=["acme.corp"], backend="dry")
-        # CLEAN has no denylist term, so it opens; now plant one:
         dirty = {**CLEAN, "body": "the step referenced db.acme.corp directly"}
         res = feedback_emit.file_feedback(dirty, quarantine_dir=self.q, pending_dir=self.pending,
                                           denylist=["acme.corp"], backend="dry")
@@ -65,6 +62,20 @@ class TestFileFeedback(unittest.TestCase):
         self.assertEqual(r2["status"], "deferred")
         self.assertNotEqual(r1["path"], r2["path"], "two deferrals must not collide")
         self.assertEqual(len(os.listdir(self.pending)), 2)
+
+    def test_failed_post_defers_instead_of_faking_success(self):
+        def failing_runner(args):
+            return (1, "", "boom")  # simulate a non-zero gh exit
+        res = feedback_emit.file_feedback(CLEAN, runner=failing_runner, backend="gh",
+                                          quarantine_dir=self.q, pending_dir=self.pending, denylist=[])
+        self.assertEqual(res["status"], "deferred")
+        self.assertTrue(os.listdir(self.pending), "failed post must preserve the draft in pending")
+
+    def test_secret_in_labels_quarantines(self):
+        dirty = {**CLEAN, "labels": ["distill-feedback", "AKIA1234567890ABCD00"]}
+        res = feedback_emit.file_feedback(dirty, quarantine_dir=self.q, pending_dir=self.pending,
+                                          denylist=[], backend="dry")
+        self.assertEqual(res["status"], "quarantined")
 
 
 if __name__ == "__main__":

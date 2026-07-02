@@ -47,8 +47,10 @@ def file_feedback(finding: dict, runner=issues.default_runner, quarantine_dir: s
                   pending_dir: str = PENDING_DIR) -> dict:
     if denylist is None:
         denylist = _load_denylist()
+    labels = finding.get("labels", ["distill-feedback"])
     body = finding["body"].rstrip() + "\n"
-    hits = scan_secrets(finding.get("title", "") + "\n" + body, denylist)
+    scanned = finding.get("title", "") + "\n" + body + "\n" + " ".join(labels)
+    hits = scan_secrets(scanned, denylist)
     if hits:
         path = quarantine({**finding, "secret_kinds": sorted({k for k, _ in hits})},
                           "secret-scan-blocked", quarantine_dir)
@@ -56,8 +58,9 @@ def file_feedback(finding: dict, runner=issues.default_runner, quarantine_dir: s
     backend = backend or issues.select_backend()
     if backend == "none":
         return {"status": "deferred", "path": _defer(finding, _finding_id(finding), body, pending_dir)}
-    labels = finding.get("labels", ["distill-feedback"])
     url = issues.open_issue(finding["repo"], finding["title"], body, labels, runner, backend=backend)
+    if not url:  # transport failed — preserve the redacted draft, don't report a phantom success
+        return {"status": "deferred", "path": _defer(finding, _finding_id(finding), body, pending_dir)}
     return {"status": "opened", "url": url}
 
 
