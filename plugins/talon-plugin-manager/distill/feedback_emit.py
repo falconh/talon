@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 import issues
 from paths import under
@@ -33,7 +34,8 @@ def _finding_id(finding: dict) -> str:
 
 def _defer(finding: dict, fid: str, body: str, pending_dir: str) -> str:
     os.makedirs(pending_dir, exist_ok=True)
-    path = os.path.join(pending_dir, f"{fid}.md")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    path = os.path.join(pending_dir, f"{ts}-{fid}.md")
     labels = ",".join(finding.get("labels", ["distill-feedback"]))
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(f"# {finding.get('title', '')}\n\nrepo: {finding['repo']}\nlabels: {labels}\n\n{body}\n")

@@ -54,6 +54,18 @@ class TestFileFeedback(unittest.TestCase):
                                           denylist=["acme.corp"], backend="dry")
         self.assertEqual(res["status"], "quarantined")
 
+    def test_repeated_defer_does_not_overwrite(self):
+        a = {**CLEAN, "body": "first body"}
+        b = {**CLEAN, "body": "second body"}  # same repo/plugin/skill/title, different body
+        r1 = feedback_emit.file_feedback(a, quarantine_dir=self.q, pending_dir=self.pending,
+                                         denylist=[], backend="none")
+        r2 = feedback_emit.file_feedback(b, quarantine_dir=self.q, pending_dir=self.pending,
+                                         denylist=[], backend="none")
+        self.assertEqual(r1["status"], "deferred")
+        self.assertEqual(r2["status"], "deferred")
+        self.assertNotEqual(r1["path"], r2["path"], "two deferrals must not collide")
+        self.assertEqual(len(os.listdir(self.pending)), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
