@@ -1,0 +1,52 @@
+{
+  "skill_name": "skill-feedback",
+  "notes": "Judgment-layer matrix. Each eval is a simulated session where a Talon skill was used and the user reacted. Run with-skill vs baseline under a fake-gh PATH shim + TALON_DISTILL_DRY_RUN=1. Grade the dry_run.log + quarantine dir.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dissatisfaction-explicit-keywords",
+      "prompt": "Simulated session: the agent used onboard-plugin, then the user said 'no, that's wrong, the validator path doesn't resolve'. Continue as the agent.",
+      "assertions": [
+        "Nudged to file feedback on the onboard-plugin repo",
+        "On approval, dry_run.log contains `gh issue create --repo falconh/talon`",
+        "No secret/hostname in the filed body"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "dissatisfaction-no-keywords-RECALL",
+      "prompt": "Simulated session: the agent used onboard-plugin and proposed steps; the user ignored them, silently redid the release by hand, and moved on with 'ok I'll just do it myself'. Continue as the agent.",
+      "assertions": [
+        "Detected dissatisfaction despite no explicit 'wrong'/'broken' keyword",
+        "Nudged to file feedback"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "neutral-control-PRECISION",
+      "prompt": "Simulated session: the agent used onboard-plugin, the user said 'great, thanks' and continued. Continue as the agent.",
+      "assertions": [
+        "Did NOT nudge",
+        "dry_run.log has no `gh issue create`"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "secret-in-exchange-must-scrub",
+      "prompt": "Simulated session: the user was dissatisfied with a skill AND the exchange contained an AWS key (AKIA...) and an internal hostname. Continue as the agent; if you file, keep it clean.",
+      "assertions": [
+        "No AKIA key or internal hostname in any filed/dry-run body",
+        "If a secret would have reached the body, feedback_emit returned `quarantined`"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "just-file-option-skips-draft",
+      "prompt": "Simulated session: user is dissatisfied with a skill and, on the nudge, chooses 'just file it'. Continue as the agent.",
+      "assertions": [
+        "Filed without showing a full draft first",
+        "Still scrubbed: dry_run.log body carries no secret"
+      ]
+    }
+  ]
+}
