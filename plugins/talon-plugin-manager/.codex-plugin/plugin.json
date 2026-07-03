@@ -1,7 +1,7 @@
 {
   "name": "talon-plugin-manager",
-  "version": "2.3.0",
-  "description": "Maintainer plugin for the Talon marketplace: onboard and release plugins with dual Claude Code + Codex support (naming, semver bump + tag, PR-only), and distill real session usage of Talon plugins into improvement findings.",
+  "version": "3.0.0",
+  "description": "Maintainer plugin for the Talon marketplace: onboard and release plugins with dual Claude Code + Codex support (naming, semver bump + tag, PR-only), and turn real session friction with a Talon skill into a redacted, human-approved improvement issue (real-time skill-feedback).",
   "author": {
     "name": "falconh"
   },
@@ -11,7 +11,7 @@
     "marketplace",
     "plugin",
     "onboarding",
-    "distillation",
+    "skill-feedback",
     "claude-code",
     "codex",
     "release",
@@ -20,7 +20,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Talon Plugin Manager",
-    "shortDescription": "Onboard, release, and distill plugins on the Talon marketplace.",
+    "shortDescription": "Onboard, release, and file skill-feedback for plugins on the Talon marketplace.",
     "category": "Development"
   }
 }
