@@ -7,18 +7,22 @@ description: >-
   bumping the plugin's version, tagging it, and pinning or re-pinning its catalog entry to that tag
   or the latest release; reconciling the Claude Code and Codex catalogs after they drift or were
   hand-edited apart; and explaining how versioning, tagging, and pinning work for marketplace
-  plugins. Default marketplace is Talon (github.com/falconh/talon) — assume it when the user only
-  says "the marketplace" or "my marketplace," and confirm if another is named. Not for installing or
-  using a plugin, building a marketplace from scratch, writing a standalone skill, or debugging a
-  plugin at runtime.
+  plugins. Works with any GitHub-hosted dual Claude Code + Codex marketplace: it detects the
+  marketplace this skill was installed from as the default target and confirms the target with the
+  user before publishing (Talon, github.com/falconh/talon, is the reference example). Not for
+  installing or using a plugin, building a marketplace from scratch, writing a standalone skill, or
+  debugging a plugin at runtime.
 ---
 
-# Onboard / update a Talon marketplace plugin
+# Onboard / update a marketplace plugin
 
-Talon (`github.com/falconh/talon`) is a single repo that acts as a plugin marketplace for **both
-Claude Code and Codex** at once. The two ecosystems use different catalog files and different plugin
-manifests, but they load the **same `SKILL.md` files**. This skill keeps both sides correct and in
-sync while you add a plugin or ship an update.
+A marketplace here is a single Git repo that lists plugins for **both Claude Code and Codex** at
+once. The two ecosystems use different catalog files and different plugin manifests, but they load
+the **same `SKILL.md` files**. This skill keeps both sides correct and in sync while you add a plugin
+or ship an update to **any** GitHub-hosted marketplace — it is not tied to one. Talon
+(`github.com/falconh/talon`) is used throughout as the reference example; the skill detects the
+marketplace it was installed from and confirms the target with you before publishing (see
+*[Before you start](#before-you-start)*).
 
 ## Mental model
 
@@ -29,14 +33,17 @@ A plugin is described twice (once per tool) but its behaviour lives once:
 | Marketplace catalog (in the marketplace repo) | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` |
 | Plugin manifest (in the plugin) | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` |
 | Skills (shared, one copy) | `skills/<skill>/SKILL.md` | same file (`"skills": "./skills/"`) |
-| Add the marketplace | `/plugin marketplace add falconh/talon` | `codex plugin marketplace add falconh/talon` |
-| Install / enable | `/plugin install <name>@talon` | enable in `/plugins` |
+| Add the marketplace | `/plugin marketplace add <owner>/<repo>` | `codex plugin marketplace add <owner>/<repo>` |
+| Install / enable | `/plugin install <name>@<marketplace>` | enable in `/plugins` |
 
-A plugin can live **inside talon** (a *local* source under `plugins/<name>/`) or **in its own repo**
-(a *remote* source referenced from the catalogs). Prefer a **remote** source when the plugin is
-substantial or independently useful — it keeps a single source of truth and lets the plugin be
-versioned and tagged on its own. Use a **local** source for small, talon-specific plugins (like this
-one).
+(Placeholders resolve to the confirmed marketplace — e.g. `falconh/talon` and `@talon` for the
+reference example.)
+
+A plugin can live **inside the marketplace repo** (a *local* source under `plugins/<name>/`) or **in
+its own repo** (a *remote* source referenced from the catalogs). Prefer a **remote** source when the
+plugin is substantial or independently useful — it keeps a single source of truth and lets the plugin
+be versioned and tagged on its own. Use a **local** source for small, marketplace-specific plugins
+(like this one).
 
 ## Golden rules (do not skip)
 
@@ -45,7 +52,7 @@ fine for the other.
 
 1. **Every change is a pull request.** Never push to a default branch (`main`/`master`). Branch,
    commit, push the branch (plain `git`), and open a PR. This applies to both the plugin repo and to
-   talon. Open the PR with `gh pr create` when `gh` is installed; if it isn't, use the GitHub MCP
+   the marketplace repo. Open the PR with `gh pr create` when `gh` is installed; if it isn't, use the GitHub MCP
    server's PR tool, or the REST API (`POST /repos/<owner>/<repo>/pulls`) — see
    `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
 2. **Both catalogs always move together.** If a plugin appears in one catalog it must appear in the
@@ -55,7 +62,7 @@ fine for the other.
    must contain **both `name` and `description`** (Codex *requires* `name`; Claude Code uses
    `description`). A skill missing `name` is invisible to Codex.
 4. **A release means: bump → tag → pin.** Bump the `version` in both plugin manifests (semver), tag
-   the plugin repo `vX.Y.Z`, then pin both talon catalog entries to that tag. Claude Code only
+   the plugin repo `vX.Y.Z`, then pin both marketplace catalog entries to that tag. Claude Code only
    delivers updates to users when the manifest `version` changes, so the bump is what makes an
    update real — not just new commits.
 5. **One stable `name` everywhere.** Use the same plugin `name` in both manifests and both catalog
@@ -114,19 +121,40 @@ is available — `gh` (`gh auth status`, needs `repo` scope), the GitHub MCP ser
 with `GH_TOKEN`/`GITHUB_TOKEN`. The command examples below use `gh`; substitute per
 `${CLAUDE_PLUGIN_ROOT}/references/github-access.md` if `gh` isn't installed.
 
-**Confirm the target marketplace — do not assume.** This skill defaults to **Talon**
-(`falconh/talon`), but a plugin is not owned by any one marketplace. If the request does not name a
-marketplace — e.g. "publish my plugin to Claude Code and Codex" or "make my plugin work in Codex so I
-can list it" — **ask** whether they mean Talon or a different marketplace, and get that marketplace's
-repo/path. Don't silently default to Talon. The entire workflow below is identical for any dual
-Claude Code + Codex marketplace; only the catalog *location* changes. Every such marketplace keeps
-its catalogs at the same relative paths in its repo root (`.claude-plugin/marketplace.json` and
-`.agents/plugins/marketplace.json`), so just target the confirmed marketplace's repo for the catalog
-PR. The plugin repo, its manifests, naming, versioning, and tagging are unaffected by which
-marketplace lists it.
+**Identify and confirm the target marketplace — never hardcode one.** This skill is not tied to any
+one marketplace; it works with any GitHub-hosted dual Claude Code + Codex marketplace. Before Flow A
+or B, establish which marketplace you are publishing to:
+
+1. **Auto-detect the default.** Run the resolver — it reports the marketplace this skill was
+   installed from (its *root marketplace*) and that repo's live default branch:
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/resolve_marketplace.py"
+   ```
+   It resolves the repo slug in this order: an explicit `--repo owner/name`; a
+   `marketplace.config.json` beside the skill (drop one in when you clone this plugin into your own
+   marketplace — see `references/templates.md`); self-location from the install path via
+   `~/.claude/plugins/known_marketplaces.json`; else the `origin` remote of the current checkout if
+   it is itself a marketplace. `defaultBranch` comes from a live `git ls-remote` — **never assume
+   `main`; many repos (Talon included) default to `master`.**
+2. **Confirm with the user, offering the detected marketplace as the default.** Present the resolved
+   `repo` as the default and ask them to accept it or name a different `owner/name`. A plugin is not
+   owned by any one marketplace and **anyone can contribute to a marketplace they don't own via a
+   fork PR**, so the target may legitimately differ from the root marketplace. If the resolver
+   returns `"resolved": false` (e.g. on Codex, which has no `known_marketplaces.json`, or when run
+   from an unrelated directory), **ask** for the marketplace's `owner/name`, then re-run with
+   `--repo owner/name` to fetch its default branch. If the marketplace had to be entered by hand and
+   the skill directory is writable, offer to save it to `marketplace.config.json` for next time.
+3. **Use the confirmed `repo` and `defaultBranch`** everywhere the workflow shows
+   `<marketplace-repo>` / `<marketplace-default-branch>` (most importantly the catalog PR).
+
+The entire workflow below is identical for any such marketplace; only the catalog *location* changes.
+Every dual marketplace keeps its catalogs at the same relative paths in its repo root
+(`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), so just target the
+confirmed marketplace's repo for the catalog PR. The plugin repo, its manifests, naming, versioning,
+and tagging are unaffected by which marketplace lists it.
 
 Decide which flow you are in:
-- **Flow A — onboard a new plugin** (it is not yet in talon's catalogs).
+- **Flow A — onboard a new plugin** (it is not yet in the marketplace's catalogs).
 - **Flow B — release an update** (the plugin is already listed; you are shipping a new version or a
   re-pin).
 
@@ -149,12 +177,12 @@ one as you go rather than reproducing JSON from memory.
    no changes — only the manifests.
 
 3. **Choose the source type.** Remote (its own repo, recommended for real plugins) or local
-   (vendored under `talon/plugins/<name>/`). For remote, use the **HTTPS `url` source**, not the
+   (vendored under the marketplace repo's `plugins/<name>/`). For remote, use the **HTTPS `url` source**, not the
    `github` shorthand — the shorthand makes Claude Code clone over SSH and fails to install for
    anyone without a GitHub SSH key (see `references/templates.md`). Make sure a release tag exists
    (Flow B step 3) so you can pin to it.
 
-4. **Add entries to BOTH catalogs (a PR on talon).** Add a plugin entry to
+4. **Add entries to BOTH catalogs (a PR on the marketplace repo).** Add a plugin entry to
    `.claude-plugin/marketplace.json` and a matching entry to `.agents/plugins/marketplace.json`,
    using the templates. For a remote source, pin `ref` to the release tag `vX.Y.Z` and set the
    Claude entry's `version` to match. Update the README's plugins table if there is one.
@@ -163,7 +191,8 @@ one as you go rather than reproducing JSON from memory.
 
 ## Flow B — release an update (bump → tag → pin)
 
-Use this whenever a plugin's content changes, or you are adding Codex support, or re-pinning talon.
+Use this whenever a plugin's content changes, or you are adding Codex support, or re-pinning the
+marketplace.
 
 1. **Land the content change on the plugin repo via PR.** Branch, make the change, push, open a PR,
    and merge it. Do not tag yet.
@@ -181,10 +210,11 @@ Use this whenever a plugin's content changes, or you are adding Codex support, o
    from `./plugins/<name>` have no separate repo to tag — skip this step; the manifest bump is the
    release signal.
 
-4. **Pin talon to the new tag (a PR on talon).** In **both** catalogs, set the plugin entry's
-   `source.ref` to `vX.Y.Z`. In the Claude catalog also set the entry's `version` to `X.Y.Z`. This
-   makes talon serve exactly the tagged release and is what propagates the update to users
-   (`/plugin marketplace update talon` / `codex plugin marketplace upgrade talon`). For a **local**
+4. **Pin the marketplace to the new tag (a PR on the marketplace repo).** In **both** catalogs, set
+   the plugin entry's `source.ref` to `vX.Y.Z`. In the Claude catalog also set the entry's `version`
+   to `X.Y.Z`. This makes the marketplace serve exactly the tagged release and is what propagates the
+   update to users (`/plugin marketplace update <marketplace>` /
+   `codex plugin marketplace upgrade <marketplace>`). For a **local**
    plugin there is no `ref` to pin — just set the Claude catalog entry's `version` to match the manifest
    (the Codex local entry has no version field).
 
@@ -192,7 +222,7 @@ Use this whenever a plugin's content changes, or you are adding Codex support, o
 
 ## Verification (before every PR)
 
-Run the bundled validator against the talon checkout — it confirms both catalogs parse, every plugin
+Run the bundled validator against the marketplace checkout — it confirms both catalogs parse, every plugin
 is present in **both** catalogs, local plugins have both manifests and dual-valid skills, and remote
 entries are pinned to a tag (not a bare branch) and use an HTTPS (not SSH) source. Treat an
 SSH-prone-source warning as blocking — it means the plugin will fail to install for users without a
@@ -213,6 +243,7 @@ the **same** PR so the two tools never drift.
 
 ## Quick reference
 
+- Resolve/confirm the target marketplace (repo + default branch): `scripts/resolve_marketplace.py`
 - Manifest + catalog JSON (local and remote, both tools): `references/templates.md`
-- Branch/PR/tag command sequence with `gh`: `references/release-and-pr-workflow.md`
+- Branch/PR/tag command sequence (`gh` / MCP / REST, incl. fork PRs): `references/release-and-pr-workflow.md`
 - Validator: `scripts/validate_talon.py`

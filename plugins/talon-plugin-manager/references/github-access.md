@@ -44,6 +44,44 @@ transport-specific — prefer in the same order:
    `{"title","head","base","body"}` and an `Authorization: Bearer $GH_TOKEN` header
    (equivalently `curl`).
 
+### Push access vs. fork (contributor flow)
+
+A marketplace is meant to take plugins from **anyone** via PR, and most contributors don't have push
+access to the marketplace repo. Decide the path before you push:
+
+```bash
+gh repo view <owner>/<repo> --json viewerPermission -q .viewerPermission
+#  WRITE / MAINTAIN / ADMIN  -> you can push a branch to the repo directly (the flow above)
+#  READ / (empty / error)    -> you must fork first
+```
+(No `gh`? A `403` on `git push` to the upstream means the same thing — fork.)
+
+**Fork flow** (no write access):
+
+```bash
+# 1. fork + clone in one step (origin = your fork, upstream = the marketplace)
+gh repo fork <owner>/<repo> --clone --remote
+cd <repo>
+
+# 2. branch, edit BOTH catalogs, validate, commit
+git checkout -b <topic-branch>
+# ... edits ...
+git commit -am "<summary>"
+
+# 3. push to YOUR fork, then open the PR against upstream's default branch
+git push -u origin <topic-branch>
+gh pr create --repo <owner>/<repo> \
+  --base <default-branch> \
+  --head <your-github-login>:<topic-branch> \
+  --title "<summary>" --body "<…>"
+```
+
+Without `gh`: create the fork via the REST API (`POST /repos/<owner>/<repo>/forks`) or the GitHub
+MCP `fork_repository` tool, add it as a remote (`git remote add fork
+https://github.com/<you>/<repo>.git`), push there, then open the PR with `head` set to
+`<your-github-login>:<topic-branch>`. The base repo/branch are still `<owner>/<repo>` /
+`<default-branch>` (resolve the branch with `scripts/resolve_marketplace.py`, never assume `main`).
+
 ## Token setup (for the REST API path)
 
 ```bash
