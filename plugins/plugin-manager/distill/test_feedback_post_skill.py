@@ -3,7 +3,7 @@ import unittest
 
 import feedback_post_skill as h
 
-REG = {"onboard-plugin": "/p/onboard", "talon-plugin-manager": "/p/tpm"}
+REG = {"onboard-plugin": "/p/onboard", "plugin-manager": "/p/tpm"}
 
 
 class TestReassert(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestReassert(unittest.TestCase):
 
     def test_skill_feedback_itself_is_silent(self):
         note = h.reassert_for({"tool_name": "Skill",
-                               "tool_input": {"skill": "talon-plugin-manager:skill-feedback"}}, REG)
+                               "tool_input": {"skill": "plugin-manager:skill-feedback"}}, REG)
         self.assertIsNone(note)
 
     def test_non_talon_skill_is_silent(self):

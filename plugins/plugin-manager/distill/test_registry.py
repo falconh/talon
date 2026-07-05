@@ -8,7 +8,7 @@ FIX = os.path.join(os.path.dirname(__file__), "fixtures", "installed_plugins.jso
 class TestRegistry(unittest.TestCase):
     def test_only_talon_plugins(self):
         reg = load_talon_registry(FIX)
-        self.assertEqual(set(reg), {"talon-plugin-manager", "terraform-module-steering"})
+        self.assertEqual(set(reg), {"plugin-manager", "terraform-module-steering"})
 
     def test_maps_name_to_install_path(self):
         reg = load_talon_registry(FIX)

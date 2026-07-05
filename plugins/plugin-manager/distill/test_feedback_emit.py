@@ -6,7 +6,7 @@ import unittest
 import feedback_emit
 import issues
 
-CLEAN = {"repo": "falconh/talon", "plugin": "onboard-plugin", "skill": "talon-plugin-manager:onboard-plugin",
+CLEAN = {"repo": "falconh/talon", "plugin": "onboard-plugin", "skill": "plugin-manager:onboard-plugin",
          "title": "[feedback] onboard-plugin validator path guidance unclear",
          "body": "The skill's verification step points at a path that does not resolve for a local plugin."}
 DIRTY = {**CLEAN, "title": "[feedback] leak", "body": "the key AKIA1234567890ABCD00 was printed by the step"}

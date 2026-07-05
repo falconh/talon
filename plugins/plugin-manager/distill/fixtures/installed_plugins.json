@@ -2,7 +2,7 @@
   "version": 2,
   "plugins": {
     "superpowers@claude-plugins-official": [{ "installPath": "/x/superpowers/6.0.2", "version": "6.0.2" }],
-    "talon-plugin-manager@talon": [{ "installPath": "/x/talon/talon-plugin-manager", "version": "2.0.0" }],
+    "plugin-manager@talon": [{ "installPath": "/x/talon/plugin-manager", "version": "2.0.0" }],
     "terraform-module-steering@talon": [{ "installPath": "/x/tms/1.1.0", "version": "1.1.0" }]
   }
 }
