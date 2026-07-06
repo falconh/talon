@@ -3,9 +3,9 @@
 Every change to a plugin repo or to the marketplace goes through a pull request. Never commit to a default
 branch. This file gives the exact command sequence; the conceptual steps are in `SKILL.md`.
 
-`git` is always required. The PR-creation commands below show `gh` as the primary example; if `gh`
-isn't installed, open the PR via the **GitHub MCP server** or the **REST API** instead (same fields)
-— see `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
+`git` is always required. The PR-creation commands below show `gh` as the primary example; for the
+`gh`-not-installed backends (GitHub MCP server / REST API), see `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`
+(SKILL.md → *Before you start* covers picking the backend).
 
 **Repo slug and default branch are placeholders.** `<marketplace-repo>` / `<owner>/<repo>` and
 `<default-branch>` come from `scripts/resolve_marketplace.py` and the user's confirmation (SKILL.md →
@@ -69,8 +69,8 @@ git checkout -b <topic-branch>
 #   .agents/plugins/marketplace.json  -> add/replace the matching entry (ref)
 #   README.md                         -> update the plugins table if present
 
-# validator path is relative to the marketplace repo root; adjust to where this plugin lives:
-python3 plugins/<this-plugin>/skills/onboard-plugin/scripts/validate_talon.py --root .
+# the script always lives in the installed plugin; --root is the checkout being validated (here, cwd):
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/validate_talon.py" --root .
 
 git add -A
 git commit -m "<summary>"
