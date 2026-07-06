@@ -82,6 +82,18 @@ https://github.com/<you>/<repo>.git`), push there, then open the PR with `head` 
 `<your-github-login>:<topic-branch>`. The base repo/branch are still `<owner>/<repo>` /
 `<default-branch>` (resolve the branch with `scripts/resolve_marketplace.py`, never assume `main`).
 
+### Contributor who also can't tag the plugin's own repo → use a LOCAL source
+
+A **remote** catalog entry pins to a release **tag** (`vX.Y.Z`) on the plugin's own repo — which only
+someone with push access to that repo can create. So if you're a contributor who lacks push/tag
+access to the **plugin's** repo (not just the marketplace), you *cannot complete* a remote pin: the
+tag you'd point at can't be made. Don't produce that dead-end plan. Instead **vendor the plugin as a
+`local` source** inside your marketplace-fork PR (copy it under `plugins/<name>/` and use the local
+catalog entries from `references/templates.md`), which needs no tag and is fully completable by a
+read-only contributor. Whoever owns the plugin can later cut a real tag and the marketplace can
+switch the entry from `local` to a pinned `remote` source. (If you *do* have push access to the
+plugin repo, prefer the remote source as usual — single source of truth, independently versioned.)
+
 ## Token setup (for the REST API path)
 
 ```bash

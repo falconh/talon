@@ -12,8 +12,9 @@ Repo-slug resolution (first hit wins):
   2. config file         --config PATH, else <skill-dir>/marketplace.config.json if present
   3. self-location       this script's own install path -> marketplace name
                          -> ~/.claude/plugins/known_marketplaces.json -> repo slug
-  4. cwd git remote      `git remote get-url origin`, ONLY if the cwd looks like a
-                         marketplace checkout (has .claude-plugin/marketplace.json)
+  4. checkout git remote `git -C <--root> remote get-url origin`, ONLY if that dir looks
+                         like a marketplace checkout (has .claude-plugin/marketplace.json).
+                         Pass --root <marketplace-checkout> to target a specific one.
 
 Default branch: config's `defaultBranch` if set, else a live
 `git ls-remote --symref https://github.com/<slug>.git HEAD` (plain git, no gh, no SSH).
@@ -111,6 +112,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Resolve the target marketplace repo + default branch.")
     ap.add_argument("--repo", help="explicit owner/name override")
     ap.add_argument("--config", help="path to a marketplace.config.json")
+    ap.add_argument("--root", default=".", help="marketplace checkout to detect from (its origin remote); default: cwd")
     ap.add_argument("--skill-dir", help="skill dir to look for marketplace.config.json (default: derived)")
     args = ap.parse_args()
 
@@ -142,12 +144,14 @@ def main() -> int:
             result.update(name=name, hint=f"marketplace {name!r} not in known_marketplaces.json "
                                           "(Codex, or added under another name) — confirm the repo")
 
-    # 4. cwd git remote, only if cwd is itself a marketplace checkout
-    if not result["repo"] and os.path.isfile(CLAUDE_CATALOG):
-        url = _git(["remote", "get-url", "origin"])
+    # 4. git remote of --root, only if that dir is itself a marketplace checkout.
+    #    Use --root to point at the TARGET marketplace's checkout so this detects its
+    #    origin, not whatever repo the session happens to be running in.
+    if not result["repo"] and os.path.isfile(os.path.join(args.root, CLAUDE_CATALOG)):
+        url = _git(["remote", "get-url", "origin"], cwd=args.root)
         slug = _slug_from_url(url) if url else None
         if slug:
-            result.update(repo=slug, source="cwd-git")
+            result.update(repo=slug, source="checkout-git")
 
     if not result["repo"]:
         result["hint"] = result["hint"] or ("could not auto-detect a marketplace — "

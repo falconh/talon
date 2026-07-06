@@ -133,9 +133,14 @@ or B, establish which marketplace you are publishing to:
    It resolves the repo slug in this order: an explicit `--repo owner/name`; a
    `marketplace.config.json` beside the skill (drop one in when you clone this plugin into your own
    marketplace — see `references/templates.md`); self-location from the install path via
-   `~/.claude/plugins/known_marketplaces.json`; else the `origin` remote of the current checkout if
-   it is itself a marketplace. `defaultBranch` comes from a live `git ls-remote` — **never assume
-   `main`; many repos (Talon included) default to `master`.**
+   `~/.claude/plugins/known_marketplaces.json`; else the `origin` remote of a marketplace checkout.
+   If the user hands you the target marketplace's checkout, point the resolver at it with
+   `--root <path-to-that-checkout>` so it reads *that* repo's origin, not whatever repo your session
+   happens to be in. `defaultBranch` comes from a live `git ls-remote` — **never assume `main`; many
+   repos (Talon included) default to `master`.** If `defaultBranch` comes back `null` (a private or
+   unreachable repo, or you're offline), get it from
+   `gh repo view <owner>/<repo> --json defaultBranchRef -q .defaultBranchRef.name` (or
+   `gh api repos/<owner>/<repo> -q .default_branch`) — still never a blind `main`.
 2. **Confirm with the user, offering the detected marketplace as the default.** Present the resolved
    `repo` as the default and ask them to accept it or name a different `owner/name`. A plugin is not
    owned by any one marketplace and **anyone can contribute to a marketplace they don't own via a
@@ -180,7 +185,9 @@ one as you go rather than reproducing JSON from memory.
    (vendored under the marketplace repo's `plugins/<name>/`). For remote, use the **HTTPS `url` source**, not the
    `github` shorthand — the shorthand makes Claude Code clone over SSH and fails to install for
    anyone without a GitHub SSH key (see `references/templates.md`). Make sure a release tag exists
-   (Flow B step 3) so you can pin to it.
+   (Flow B step 3) so you can pin to it. **If you're a contributor who can't push/tag the plugin's
+   own repo**, you can't create the tag a remote pin needs — vendor it as a **local** source instead
+   (see the fork section of `references/github-access.md`).
 
 4. **Add entries to BOTH catalogs (a PR on the marketplace repo).** Add a plugin entry to
    `.claude-plugin/marketplace.json` and a matching entry to `.agents/plugins/marketplace.json`,
