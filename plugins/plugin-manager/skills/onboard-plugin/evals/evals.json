@@ -1,0 +1,41 @@
+{
+  "skill_name": "onboard-plugin",
+  "note": "These prompts exercise the skill across ANY GitHub-hosted marketplace (not just Talon), plus the confirm-target and fork-contributor paths. Running them for real performs live GitHub side effects (forks, branches, PRs, tags) on real repos, so execute them only against throwaway repos, behind a fake-gh PATH shim, or in a dry run. Kept as triggering + workflow references.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "generic-named-marketplace",
+      "prompt": "I just pushed a plugin to github.com/acme/acme-slack-notify. Onboard it into my marketplace, github.com/acme/acme-skills, so it installs from both Claude Code and Codex.",
+      "expected_output": "Targets acme/acme-skills (NOT Talon) — the user named it. Resolves that repo's real default branch (via resolve_marketplace.py / gh, never assumes main). Makes the plugin dual-compatible (adds .codex-plugin/plugin.json if missing, bumps version, tags), then adds matching acme-slack-notify entries to BOTH catalogs as an HTTPS url source pinned to the tag, and opens a PR against acme/acme-skills. All changes via PR; never pushes a default branch.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "unnamed-marketplace-confirm",
+      "prompt": "Onboard my new plugin so it installs from Claude Code and Codex. It's at ~/src/my-plugin, and my marketplace repo is checked out at ~/src/my-marketplace.",
+      "expected_output": "Does NOT assume Talon. Determines the target marketplace from the provided checkout — runs resolve_marketplace.py --root ~/src/my-marketplace (or reads its origin remote), presents that repo as the default, and confirms with the user before proceeding. Resolves the real default branch. Then proceeds with the normal dual-catalog onboarding.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "contributor-fork-no-write-access",
+      "prompt": "I want to add my plugin to the acme-skills marketplace (github.com/acme/acme-skills) but I don't own it — I only have read access. How do I get it in?",
+      "expected_output": "Detects the lack of write access (gh repo view --json viewerPermission => READ) and uses the FORK flow: fork acme/acme-skills, push the branch to the fork, open a PR with --head <login>:<branch> against acme/acme-skills' default branch. Because the contributor also can't create a release tag on their own plugin repo, recommends vendoring the plugin as a LOCAL source in the fork PR (no tag needed) rather than a non-completable remote pin. Never instructs a direct push to the upstream marketplace.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "release-update-existing",
+      "prompt": "I added a second skill to terraform-module-steering. Cut a new release and update the Talon marketplace to point at it.",
+      "expected_output": "Treats this as a minor bump (additive). Confirms the target marketplace (Talon here, since named). Lands the change on the plugin repo via PR, bumps version in BOTH manifests, tags vX.Y.0, then opens a marketplace PR re-pinning both catalog entries' ref (and the Claude entry version) to the new tag. Resolves the marketplace's real default branch for the PR base. Verifies the tag resolves first.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "naming-and-requirements",
+      "prompt": "What should I name the repo for a new Datadog monitors plugin, and what do I need in it before it can go on a marketplace?",
+      "expected_output": "Suggests a concise, purpose-reflecting name like datadog-monitors via the naming thought process (no marketplace prefix; repo name == plugin name; kebab-case; domain-named so it survives growth). Notes grouping via a GitHub topic instead of a prefix. Requires both .claude-plugin/plugin.json and .codex-plugin/plugin.json, skills/<skill>/SKILL.md with both name and description, a version, and a vX.Y.Z tag to pin from the marketplace. All changes via PR.",
+      "files": []
+    }
+  ]
+}

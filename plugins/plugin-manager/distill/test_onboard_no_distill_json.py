@@ -1,4 +1,4 @@
-# plugins/talon-plugin-manager/distill/test_onboard_no_distill_json.py
+# plugins/plugin-manager/distill/test_onboard_no_distill_json.py
 """onboard-plugin must no longer mention distill.json / under-trigger / domain-signals now that
 under-trigger detection is retired."""
 import json

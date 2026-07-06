@@ -1,7 +1,10 @@
-# Talon manifest & catalog templates
+# Marketplace manifest & catalog templates
 
-Copy-paste templates for every file a Talon plugin touches. Replace `<...>` placeholders. Keep the
-two plugin manifests on the same `version`, and keep both catalog entries describing the same plugin.
+Copy-paste templates for every file a marketplace plugin touches. Replace `<...>` placeholders with
+the confirmed marketplace's values — `<owner>`/`<repo>`, `<marketplace-name>`, `<owner-email>` (e.g.
+`falconh`, `talon`, and `wongfalcon@gmail.com` for the reference example; resolve them via
+`scripts/resolve_marketplace.py`). Keep the two plugin manifests on the same `version`, and keep both
+catalog entries describing the same plugin.
 
 ## Contents
 
@@ -14,15 +17,16 @@ two plugin manifests on the same `version`, and keep both catalog entries descri
 
 ## Catalog file locations
 
-Both live at the **root of the talon repo**:
+Both live at the **root of the marketplace repo** (identical relative paths for every dual
+marketplace):
 
 - Claude Code: `.claude-plugin/marketplace.json`
 - Codex: `.agents/plugins/marketplace.json`
 
 ## Plugin manifests
 
-These live in the **plugin** (its own repo for a remote plugin, or `talon/plugins/<name>/` for a
-local one). Both are required for dual support.
+These live in the **plugin** (its own repo for a remote plugin, or the marketplace repo's
+`plugins/<name>/` for a local one). Both are required for dual support.
 
 `.claude-plugin/plugin.json`:
 
@@ -31,9 +35,9 @@ local one). Both are required for dual support.
   "name": "<name>",
   "description": "<one-line description>",
   "version": "<X.Y.Z>",
-  "author": { "name": "falconh" },
-  "homepage": "https://github.com/falconh/<repo>",
-  "repository": "https://github.com/falconh/<repo>",
+  "author": { "name": "<owner>" },
+  "homepage": "https://github.com/<owner>/<repo>",
+  "repository": "https://github.com/<owner>/<repo>",
   "license": "MIT",
   "keywords": ["<kw>", "<kw>"],
   "skills": "./skills"
@@ -47,7 +51,7 @@ local one). Both are required for dual support.
   "name": "<name>",
   "version": "<X.Y.Z>",
   "description": "<one-line description>",
-  "author": { "name": "falconh" },
+  "author": { "name": "<owner>" },
   "license": "MIT",
   "keywords": ["<kw>", "<kw>"],
   "skills": "./skills/",
@@ -66,7 +70,7 @@ stays at the plugin root — same rule as `.claude-plugin/`.
 
 Add to the `plugins` array of `.claude-plugin/marketplace.json`.
 
-**Local source** (plugin vendored under `talon/plugins/<name>/`):
+**Local source** (plugin vendored under the marketplace repo's `plugins/<name>/`):
 
 ```json
 {
@@ -74,7 +78,7 @@ Add to the `plugins` array of `.claude-plugin/marketplace.json`.
   "source": "./plugins/<name>",
   "description": "<one-line description>",
   "version": "<X.Y.Z>",
-  "author": { "name": "falconh" }
+  "author": { "name": "<owner>" }
 }
 ```
 
@@ -84,7 +88,7 @@ URL, and pin `ref` to the release tag:
 ```json
 {
   "name": "<name>",
-  "source": { "source": "url", "url": "https://github.com/falconh/<repo>.git", "ref": "v<X.Y.Z>" },
+  "source": { "source": "url", "url": "https://github.com/<owner>/<repo>.git", "ref": "v<X.Y.Z>" },
   "description": "<one-line description>",
   "version": "<X.Y.Z>"
 }
@@ -118,7 +122,7 @@ Add to the `plugins` array of `.agents/plugins/marketplace.json`.
 ```json
 {
   "name": "<name>",
-  "source": { "source": "url", "url": "https://github.com/falconh/<repo>.git", "ref": "v<X.Y.Z>" },
+  "source": { "source": "url", "url": "https://github.com/<owner>/<repo>.git", "ref": "v<X.Y.Z>" },
   "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
   "category": "<Development | Productivity | ...>"
 }
@@ -153,9 +157,9 @@ For reference, the shape of each catalog (entries trimmed):
 
 ```json
 {
-  "name": "talon",
-  "owner": { "name": "falconh", "email": "wongfalcon@gmail.com" },
-  "metadata": { "description": "Talon — a personal marketplace of Claude Code & Codex skills." },
+  "name": "<marketplace-name>",
+  "owner": { "name": "<owner>", "email": "<owner-email>" },
+  "metadata": { "description": "<one-line marketplace description>" },
   "plugins": [ /* entries here */ ]
 }
 ```
@@ -164,8 +168,28 @@ For reference, the shape of each catalog (entries trimmed):
 
 ```json
 {
-  "name": "talon",
-  "interface": { "displayName": "Talon" },
+  "name": "<marketplace-name>",
+  "interface": { "displayName": "<Marketplace Display Name>" },
   "plugins": [ /* entries here */ ]
 }
 ```
+
+## Optional: `marketplace.config.json` (pinning this skill to a marketplace)
+
+`scripts/resolve_marketplace.py` auto-detects the marketplace this skill was installed from, so no
+config is needed in the common case. But if you **clone this plugin into your own marketplace** and
+want the target fixed without relying on auto-detection (e.g. for Codex, which has no
+`known_marketplaces.json`, or to pin a non-`master` default branch), drop a
+`marketplace.config.json` **next to the skill** (`skills/onboard-plugin/marketplace.config.json`);
+the resolver reads it before self-locating:
+
+```json
+{
+  "repo": "<owner>/<repo>",
+  "name": "<marketplace-name>",
+  "defaultBranch": "<default-branch>"
+}
+```
+
+Only `repo` is required; omit `defaultBranch` to have it resolved live. The user can also override
+per-run with `resolve_marketplace.py --repo <owner>/<repo>`.

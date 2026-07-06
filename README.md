@@ -12,17 +12,17 @@ One repo, two marketplaces, the same skills.
 | --- | --- | --- |
 | `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
 | `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.4.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
-| `talon-plugin-manager` | Maintainer plugin: onboard and release plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow), plus real-time feedback that offers to file a redacted enhancement issue on a plugin's own repo when one of its skills disappoints the user. | local (`plugins/talon-plugin-manager`) |
+| `plugin-manager` | Maintainer plugin: onboard and release plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow), plus real-time feedback that offers to file a redacted enhancement issue on a plugin's own repo when one of its skills disappoints the user. | local (`plugins/plugin-manager`) |
 
 Plugins can live **in this repo** (local source) or **in their own repo** (remote
 git source); both Claude Code and Codex resolve either kind from the catalogs.
 
 ### Maintaining this marketplace
 
-Onboarding a new plugin or cutting a release? Use the **`talon-plugin-manager`** plugin's
+Onboarding a new plugin or cutting a release? Use the **`plugin-manager`** plugin's
 `onboard-plugin` skill — it gives naming guidance, encodes the dual-manifest requirement, the
 bump → tag → pin release flow, and the PR-only rule. Validate any change with
-`python3 plugins/talon-plugin-manager/skills/onboard-plugin/scripts/validate_talon.py --root .`
+`python3 plugins/plugin-manager/skills/onboard-plugin/scripts/validate_talon.py --root .`
 
 ## Install
 

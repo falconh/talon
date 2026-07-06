@@ -30,10 +30,10 @@
       "category": "Development"
     },
     {
-      "name": "talon-plugin-manager",
+      "name": "plugin-manager",
       "source": {
         "source": "local",
-        "path": "./plugins/talon-plugin-manager"
+        "path": "./plugins/plugin-manager"
       },
       "policy": {
         "installation": "AVAILABLE",

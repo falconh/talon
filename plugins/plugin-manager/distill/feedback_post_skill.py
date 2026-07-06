@@ -11,7 +11,7 @@ from registry import load_talon_registry
 
 REASSERT = ("[talon-skill-feedback] You just used {skill}. Watch the user's next reactions: if they "
             "correct it, redo the work themselves, show frustration, or abandon the approach, invoke "
-            "the talon-plugin-manager skill-feedback skill. Judge the user's reaction, not your own "
+            "the plugin-manager skill-feedback skill. Judge the user's reaction, not your own "
             "output.")
 
 

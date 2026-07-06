@@ -1,5 +1,5 @@
 {"type":"user","message":{"role":"user","content":"onboard a plugin"}}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"talon-plugin-manager:onboard-plugin"}}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"plugin-manager:onboard-plugin"}}]}}
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"s1","content":"Launching skill"}]}}
 {"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"w1","name":"Write","input":{"file_path":"infra/main.tf"}}]}}
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"w1","content":"written"}]}}

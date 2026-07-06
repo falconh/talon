@@ -32,10 +32,10 @@
       "version": "1.4.0"
     },
     {
-      "name": "talon-plugin-manager",
-      "source": "./plugins/talon-plugin-manager",
-      "description": "Maintainer plugin: onboard, release, and collect real-time skill-feedback for plugins on the Talon marketplace (dual Claude Code + Codex, naming, semver bump + tag, PR-only).",
-      "version": "3.0.0",
+      "name": "plugin-manager",
+      "source": "./plugins/plugin-manager",
+      "description": "Maintainer plugin: onboard, release, and collect real-time skill-feedback for plugins on a marketplace (dual Claude Code + Codex, naming, semver bump + tag, PR-only).",
+      "version": "4.0.0",
       "author": {
         "name": "falconh"
       }

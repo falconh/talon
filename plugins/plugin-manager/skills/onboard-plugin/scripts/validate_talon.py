@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate a Talon marketplace checkout for dual Claude Code + Codex correctness.
+"""Validate a marketplace checkout for dual Claude Code + Codex correctness.
+
+Works with any GitHub-hosted dual marketplace — the catalog paths it checks are the same
+relative paths for all of them; nothing here is specific to one marketplace.
 
 Checks:
   - both catalogs exist and parse
@@ -9,7 +12,7 @@ Checks:
   - remote entries are pinned to a version tag (vX.Y.Z), not a bare branch
   - (warning) local plugin dirs that no catalog references
 
-Usage:  python3 validate_talon.py --root /path/to/talon   # default: .
+Usage:  python3 validate_talon.py --root /path/to/marketplace   # default: .
 Exit code 0 = OK (warnings allowed), 1 = errors found.
 """
 from __future__ import annotations
@@ -133,7 +136,7 @@ def check_local_plugin(root: str, name: str) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default=".", help="path to the talon repo root")
+    ap.add_argument("--root", default=".", help="path to the marketplace repo root")
     args = ap.parse_args()
     root = args.root
 
