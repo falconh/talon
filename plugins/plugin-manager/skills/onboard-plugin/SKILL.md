@@ -71,6 +71,12 @@ fine for the other.
 
 ## Before you start
 
+**`${CLAUDE_PLUGIN_ROOT}` below is a placeholder for this plugin's install directory** — the paths
+that use it point at bundled scripts and reference docs. Claude Code sets this variable for
+skill/hook execution; **Codex does not set a variable by that name** (nor is it guaranteed in an
+ad-hoc shell). So read every `${CLAUDE_PLUGIN_ROOT}/…` as *the path to this plugin* and run the
+bundled scripts by their resolved absolute path — don't rely on the shell expanding the variable.
+
 Make sure you can reach GitHub for PRs. `git` is always required; for opening the PR, use whichever
 is available — `gh` (`gh auth status`, needs `repo` scope), the GitHub MCP server, or the REST API
 with `GH_TOKEN`/`GITHUB_TOKEN`. The command examples below use `gh`; substitute per
