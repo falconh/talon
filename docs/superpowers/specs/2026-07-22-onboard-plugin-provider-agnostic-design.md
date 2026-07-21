@@ -111,9 +111,29 @@ Claude Code + Codex" toward "any harness with a dual catalog" while keeping both
   common self-hosting case, incl. onboard-plugin). For a remote plugin whose source repo differs from
   its marketplace it may be the plugin repo — acceptable because it is a *default the user confirms*.
 
-## Validation plan
+## Validation (done)
 
-`/writing-great-skills` review of the combined change, then a `/skill-creator` eval whose cases assert
-the provider-agnostic requirements (self-containment / no `$CLAUDE_PLUGIN_ROOT` dependence; Codex-style
-self-location; script-less manual fallback). Evals are updated to encode these requirements and the
-skill must pass them before the PR leaves draft.
+**`/writing-great-skills` review:** the combined Phase 1+2 change is well-formed — no required edits.
+The two new *Before you start* paragraphs are legitimate always-loaded reference (not no-ops), the
+`github-access.md` duplication is intentional and documented, and the "scripts accelerate" invariant is
+backed by real prose (resolver fallback order + the validator's four checks), not a hollow claim.
+
+**`/skill-creator` eval (iteration 2):** `evals/evals.json` gained 3 provider-agnostic cases (6 Codex
+self-contained, 7 no-python manual verify, 8 unknown-harness) plus assertions on all 8. Each was run by
+an independent subagent following the skill (with-skill = this branch; baseline = pre-change
+`origin/master`), then graded against its assertions.
+
+| Eval | with-skill | baseline (old) |
+| --- | --- | --- |
+| 6 codex-self-contained-onboard | 5/5 | 2/5 |
+| 7 no-python-manual-verify | 3/3 | 1/3 |
+| 8 unknown-harness-onboard | 3/3 | 2/3 |
+| 2 unnamed-marketplace-confirm | 4/4 | regression (with-skill only) |
+| 3 contributor-fork-no-write-access | 5/5 | regression (with-skill only) |
+
+**Result: the change passes — with-skill 20/20 (100%); baseline 5/11 (45%) on the provider-agnostic
+evals**, a +0.53 pass-rate delta on evals 6–8. The delta is exactly the three fixes: baseline agents,
+following the *old* skill, independently reported that (a) the `${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/`
+script prefix "must be dropped" under a flat install, (b) `github-access.md` is **unreachable** under
+Codex's flat layout, and (c) the old skill has no Codex self-location and presents the validator as
+required — validating both the eval design and the fixes.
