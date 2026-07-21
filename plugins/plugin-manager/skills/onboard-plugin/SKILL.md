@@ -98,8 +98,9 @@ or B, establish which marketplace you are publishing to:
    ```
    It resolves the repo slug in this order: an explicit `--repo owner/name`; a
    `marketplace.config.json` beside the skill (drop one in when you clone this plugin into your own
-   marketplace — see `references/templates.md`); self-location from the install path via
-   `~/.claude/plugins/known_marketplaces.json`; else the `origin` remote of a marketplace checkout.
+   marketplace — see `references/templates.md`); self-location via whichever harness registry is
+   present (Claude Code's `~/.claude/plugins/known_marketplaces.json`, or Codex's
+   `~/.agents/.skill-lock.json`); else the `origin` remote of a marketplace checkout.
    If the user hands you the target marketplace's checkout, point the resolver at it with
    `--root <path-to-that-checkout>` so it reads *that* repo's origin, not whatever repo your session
    happens to be in. `defaultBranch` comes from a live `git ls-remote` — **never assume `main`; many
@@ -111,8 +112,8 @@ or B, establish which marketplace you are publishing to:
    `repo` as the default and ask them to accept it or name a different `owner/name`. A plugin is not
    owned by any one marketplace and **anyone can contribute to a marketplace they don't own via a
    fork PR**, so the target may legitimately differ from the root marketplace. If the resolver
-   returns `"resolved": false` (e.g. on Codex, which has no `known_marketplaces.json`, or when run
-   from an unrelated directory), **ask** for the marketplace's `owner/name`, then re-run with
+   returns `"resolved": false` (an unknown harness with no recognised registry, or run from an
+   unrelated directory), **ask** for the marketplace's `owner/name`, then re-run with
    `--repo owner/name` to fetch its default branch. If the marketplace had to be entered by hand and
    the skill directory is writable, offer to save it to `marketplace.config.json` for next time.
 3. **Use the confirmed `repo` and `defaultBranch`** everywhere the workflow shows

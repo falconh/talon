@@ -176,11 +176,11 @@ For reference, the shape of each catalog (entries trimmed):
 
 ## Optional: `marketplace.config.json` (pinning this skill to a marketplace)
 
-`scripts/resolve_marketplace.py` auto-detects the marketplace this skill was installed from, so no
-config is needed in the common case. But if you **clone this plugin into your own marketplace** and
-want the target fixed without relying on auto-detection (e.g. for Codex, which has no
-`known_marketplaces.json`, or to pin a non-`master` default branch), drop a
-`marketplace.config.json` **next to the skill** (`skills/onboard-plugin/marketplace.config.json`);
+`scripts/resolve_marketplace.py` auto-detects the marketplace this skill was installed from (via
+Claude Code's or Codex's registry), so no config is needed in the common case. But if you **clone
+this plugin into your own marketplace** and want the target fixed without relying on auto-detection
+(e.g. an unknown harness with no recognised registry, or to pin a non-`master` default branch), drop
+a `marketplace.config.json` **next to the skill** (`skills/onboard-plugin/marketplace.config.json`);
 the resolver reads it before self-locating:
 
 ```json
