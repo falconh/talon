@@ -51,10 +51,9 @@ These exist because a marketplace that is half-updated silently breaks for one t
 fine for the other.
 
 1. **Every change is a pull request.** Never push to a default branch (`main`/`master`). Branch,
-   commit, push the branch (plain `git`), and open a PR. This applies to both the plugin repo and to
-   the marketplace repo. Open the PR with `gh pr create` when `gh` is installed; if it isn't, use the GitHub MCP
-   server's PR tool, or the REST API (`POST /repos/<owner>/<repo>/pulls`) — see
-   `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`.
+   commit, push the branch (plain `git`), and open a PR — for both the plugin repo and the
+   marketplace repo. (How to open a PR when `gh` isn't installed: *Before you start*, below, picks the
+   backend; `${CLAUDE_PLUGIN_ROOT}/references/github-access.md` has the commands.)
 2. **Both catalogs always move together.** If a plugin appears in one catalog it must appear in the
    other. If you change a version/ref in one, change it in the other in the same PR.
 3. **Every plugin ships both manifests + a dual-valid skill.** A plugin needs both
@@ -68,53 +67,15 @@ fine for the other.
 5. **One stable `name` everywhere.** Use the same plugin `name` in both manifests and both catalog
    entries. It's an identifier — Codex's plugin id and Claude Code's `/<plugin>:<skill>` namespace —
    so choose it deliberately and avoid renaming, which breaks installs and invocations. See
-   *Naming a plugin* below for how to pick a good one.
-
-## Naming a plugin
-
-A plugin's name is its **identity, not its address**. It becomes a stable identifier — Codex's plugin
-id and Claude Code's skill namespace (`/<plugin>:<skill>`) — and the same plugin may be listed in more
-than one marketplace or used on its own. So name it for what it *does*, never for where it's hosted.
-Don't prefix it with a marketplace name (`talon-…`): that couples an independent artifact to one home
-and adds dead weight to every invocation.
-
-Aim for **concise but self-explanatory** — someone seeing only the name should be able to guess the
-plugin's purpose. Work through these questions:
-
-1. **What is the plugin's one job?** Name it after that capability or domain
-   (`terraform-module-steering`, `aws-cost-report`, `datadog-monitors`), not a vague umbrella
-   (`devtools`, `helpers`).
-2. **Could a stranger guess what it does from the name alone?** If not, make it more descriptive. If
-   it's a mouthful, cut filler — drop `-plugin`, `-tool`, `-skill`, and marketplace prefixes; they
-   carry no information.
-3. **Is it specific enough not to collide?** The name sits in a shared namespace next to other
-   plugins. Prefer `stripe-webhooks` over `payments`, `pg-migrations` over `db`.
-4. **Will it still fit if the plugin grows?** Name the *domain* so adding a second skill doesn't
-   outdate it; reserve action words for the skills inside.
-5. **Does `/<plugin>:<skill>` read naturally?** Say it aloud. Stutter like `/terraform:terraform-plan`
-   means the plugin name is doing the skill's job (or vice versa) — rebalance.
-6. **Keep the repo name the same as the plugin `name`** by default. The repo is just the plugin's
-   home; matching names make it easy to find and reference.
-
-Hard requirements the tooling needs (not style): **lowercase kebab-case**, **stable** over time
-(renaming breaks installs and invocations), and the **same `name`** in both plugin manifests and both
-catalog entries.
-
-**Grouping without coupling.** To see all your marketplace plugins at a glance, add a GitHub **topic**
-(e.g. `talon`) to each plugin repo, or keep them in a GitHub **org** — metadata that groups repos
-without baking the marketplace into the plugin's identity.
-
-**Skill names** (inside a plugin): short, action-oriented kebab-case (`onboard-plugin`,
-`create-monitor`) describing what the skill *does*, distinct from the plugin's domain name.
-
-Examples:
-- ✅ `terraform-module-steering` — domain + purpose; reads as `/terraform-module-steering:<skill>`
-- ✅ `aws-cost-report`, `datadog-monitors`, `stripe-webhooks`
-- ⚠️ `talon-terraform` — couples to the marketplace; drop the prefix
-- ⚠️ `tf`, `utils` — too terse/generic to convey purpose or avoid collisions
-- ⚠️ `terraform-module-steering-plugin` — `-plugin` is filler
+   [`references/naming.md`](references/naming.md) for how to pick a good one.
 
 ## Before you start
+
+**`${CLAUDE_PLUGIN_ROOT}` below is a placeholder for this plugin's install directory** — the paths
+that use it point at bundled scripts and reference docs. Claude Code sets this variable for
+skill/hook execution; **Codex does not set a variable by that name** (nor is it guaranteed in an
+ad-hoc shell). So read every `${CLAUDE_PLUGIN_ROOT}/…` as *the path to this plugin* and run the
+bundled scripts by their resolved absolute path — don't rely on the shell expanding the variable.
 
 Make sure you can reach GitHub for PRs. `git` is always required; for opening the PR, use whichever
 is available — `gh` (`gh auth status`, needs `repo` scope), the GitHub MCP server, or the REST API
@@ -172,7 +133,8 @@ one as you go rather than reproducing JSON from memory.
 
 1. **Inspect the plugin.** Read its repo (or local dir). Determine: does it already have a
    `.claude-plugin/plugin.json`? a `.codex-plugin/plugin.json`? Do its `SKILL.md` files have both
-   `name` and `description`? What is its current `version` and default branch?
+   `name` and `description`? What is its current `version` and default branch? If the plugin has no
+   settled `name` yet, choose one first — see [`references/naming.md`](references/naming.md).
 
 2. **Make it dual-compatible (a PR on the plugin repo, if changes are needed).** If the plugin is
    missing the Codex manifest, add `.codex-plugin/plugin.json` mirroring the Claude one over the
@@ -182,9 +144,9 @@ one as you go rather than reproducing JSON from memory.
    no changes — only the manifests.
 
 3. **Choose the source type.** Remote (its own repo, recommended for real plugins) or local
-   (vendored under the marketplace repo's `plugins/<name>/`). For remote, use the **HTTPS `url` source**, not the
-   `github` shorthand — the shorthand makes Claude Code clone over SSH and fails to install for
-   anyone without a GitHub SSH key (see `references/templates.md`). Make sure a release tag exists
+   (vendored under the marketplace repo's `plugins/<name>/`). For remote, use the **HTTPS `url`
+   source**, not the `github` shorthand (which clones over SSH → install fails for users without an
+   SSH key; the full why is in `references/templates.md`). Make sure a release tag exists
    (Flow B step 3) so you can pin to it. **If you're a contributor who can't push/tag the plugin's
    own repo**, you can't create the tag a remote pin needs — vendor it as a **local** source instead
    (see the fork section of `references/github-access.md`).
@@ -232,11 +194,11 @@ marketplace.
 Run the bundled validator against the marketplace checkout — it confirms both catalogs parse, every plugin
 is present in **both** catalogs, local plugins have both manifests and dual-valid skills, and remote
 entries are pinned to a tag (not a bare branch) and use an HTTPS (not SSH) source. Treat an
-SSH-prone-source warning as blocking — it means the plugin will fail to install for users without a
-GitHub SSH key:
+SSH-prone-source warning as **blocking** (why: the `url`-vs-`github` note in `references/templates.md`):
 
 ```bash
-python3 skills/onboard-plugin/scripts/validate_talon.py --root .
+# the script always lives in the installed plugin; --root points at the marketplace checkout being validated
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/validate_talon.py" --root <marketplace-checkout>
 ```
 
 Also sanity-check by hand:
@@ -251,6 +213,7 @@ the **same** PR so the two tools never drift.
 ## Quick reference
 
 - Resolve/confirm the target marketplace (repo + default branch): `scripts/resolve_marketplace.py`
+- Naming a new plugin (choosing the `name`): `references/naming.md`
 - Manifest + catalog JSON (local and remote, both tools): `references/templates.md`
 - Branch/PR/tag command sequence (`gh` / MCP / REST, incl. fork PRs): `references/release-and-pr-workflow.md`
 - Validator: `scripts/validate_talon.py`
