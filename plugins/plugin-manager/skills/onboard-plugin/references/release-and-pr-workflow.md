@@ -4,7 +4,7 @@ Every change to a plugin repo or to the marketplace goes through a pull request.
 branch. This file gives the exact command sequence; the conceptual steps are in `SKILL.md`.
 
 `git` is always required. The PR-creation commands below show `gh` as the primary example; for the
-`gh`-not-installed backends (GitHub MCP server / REST API), see `${CLAUDE_PLUGIN_ROOT}/references/github-access.md`
+`gh`-not-installed backends (GitHub MCP server / REST API), see `github-access.md` in this directory
 (SKILL.md → *Before you start* covers picking the backend).
 
 **Repo slug and default branch are placeholders.** `<marketplace-repo>` / `<owner>/<repo>` and
@@ -17,7 +17,7 @@ contributing a plugin to a marketplace (or plugin repo) you don't own — you mu
 your branch to the fork, and open the PR from the fork. Check with
 `gh repo view <owner>/<repo> --json viewerPermission` (`WRITE`/`MAINTAIN`/`ADMIN` = push directly;
 `READ`/none = fork), then follow the fork sequence in
-`${CLAUDE_PLUGIN_ROOT}/references/github-access.md` (*onboard-plugin — raising PRs*).
+`github-access.md` in this directory (*Push access vs. fork*).
 
 End commit messages and PR bodies with the standard trailer if your environment requires it.
 
@@ -69,8 +69,8 @@ git checkout -b <topic-branch>
 #   .agents/plugins/marketplace.json  -> add/replace the matching entry (ref)
 #   README.md                         -> update the plugins table if present
 
-# the script always lives in the installed plugin; --root is the checkout being validated (here, cwd):
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/validate_talon.py" --root .
+# path relative to this skill's directory; --root is the checkout being validated (here, cwd):
+python3 <skill-dir>/scripts/validate_talon.py --root .
 
 git add -A
 git commit -m "<summary>"

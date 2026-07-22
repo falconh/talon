@@ -10,11 +10,17 @@ a correct default and let the user confirm or override it.
 Repo-slug resolution (first hit wins):
   1. --repo owner/name   explicit override (what the user confirmed or typed)
   2. config file         --config PATH, else <skill-dir>/marketplace.config.json if present
-  3. self-location       this script's own install path -> marketplace name
-                         -> ~/.claude/plugins/known_marketplaces.json -> repo slug
+  3. self-location       whichever harness registry is present (provider-agnostic):
+                         - Claude Code: install path -> marketplace name
+                           -> ~/.claude/plugins/known_marketplaces.json -> repo slug
+                         - Codex: ~/.agents/.skill-lock.json -> this skill's `source` slug
   4. checkout git remote `git -C <--root> remote get-url origin`, ONLY if that dir looks
                          like a marketplace checkout (has .claude-plugin/marketplace.json).
                          Pass --root <marketplace-checkout> to target a specific one.
+
+Self-location (3) is only a convenience that pre-fills the default; correctness rests on the
+user confirming, and on (1)/(2)/(4), which are all harness-neutral. An unknown harness simply
+falls past (3) to (4) or to "ask the user".
 
 Default branch: config's `defaultBranch` if set, else a live
 `git ls-remote --symref https://github.com/<slug>.git HEAD` (plain git, no gh, no SSH).
@@ -35,7 +41,8 @@ import re
 import subprocess
 import sys
 
-KNOWN_MARKETPLACES = os.path.expanduser("~/.claude/plugins/known_marketplaces.json")
+KNOWN_MARKETPLACES = os.path.expanduser("~/.claude/plugins/known_marketplaces.json")  # Claude Code
+CODEX_SKILL_LOCK = os.path.expanduser("~/.agents/.skill-lock.json")                    # Codex
 CLAUDE_CATALOG = ".claude-plugin/marketplace.json"
 SLUG_RE = re.compile(r"^[^/\s]+/[^/\s]+$")
 
@@ -62,13 +69,14 @@ def _git(args: list[str], cwd: str | None = None) -> str | None:
     return out.stdout if out.returncode == 0 else None
 
 
-def marketplace_from_self_location(script_file: str):
-    """(name, slug) parsed from THIS script's own install path, or (None, None).
+def marketplace_from_claude_registry(script_file: str, known_path: str | None = None):
+    """(name, slug) via Claude Code's install layout + known_marketplaces.json, or (None, None).
 
-    Installed skills live under either
+    Claude installs the whole plugin under either
       ~/.claude/plugins/marketplaces/<name>/plugins/<plugin>/skills/<skill>/...   or
       ~/.claude/plugins/cache/<name>/<plugin>/<version>/skills/<skill>/...
-    so the marketplace name is the path segment right after plugins/{marketplaces,cache}.
+    so the marketplace name is the path segment right after plugins/{marketplaces,cache};
+    known_marketplaces.json then maps that name -> repo slug.
     """
     parts = os.path.abspath(script_file).split(os.sep)
     name = None
@@ -80,12 +88,41 @@ def marketplace_from_self_location(script_file: str):
         return None, None
     slug = None
     try:
-        with open(KNOWN_MARKETPLACES, encoding="utf-8") as fh:
+        with open(known_path or KNOWN_MARKETPLACES, encoding="utf-8") as fh:
             data = json.load(fh)
         slug = data.get(name, {}).get("source", {}).get("repo")
     except (OSError, ValueError):
         pass
     return name, slug
+
+
+def marketplace_from_codex_lock(skill_name: str, lock_path: str | None = None):
+    """(pluginName, slug) for this skill from Codex's ~/.agents/.skill-lock.json, or (None, None).
+
+    Codex installs skills flat (~/.agents/skills/<skill>/) and records each in
+    .skill-lock.json as skills.<name> = {source: "owner/repo", sourceUrl, pluginName, skillPath}.
+    `source` is the repo the skill was installed from — the marketplace repo for a skill that
+    lives in the marketplace it manages (onboard-plugin's own case). It can instead be the
+    plugin's own repo for a *remote* plugin whose source repo differs from its marketplace, so
+    this only ever computes a *default* the user still confirms.
+    """
+    if not skill_name:
+        return None, None
+    try:
+        with open(lock_path or CODEX_SKILL_LOCK, encoding="utf-8") as fh:
+            skills = json.load(fh).get("skills", {})
+    except (OSError, ValueError):
+        return None, None
+    entry = skills.get(skill_name)
+    if entry is None:  # fall back to matching the installed SKILL.md folder
+        suffix = f"/{skill_name}/SKILL.md"
+        entry = next((e for e in skills.values()
+                      if str(e.get("skillPath", "")).endswith(suffix)), None)
+    if not isinstance(entry, dict):
+        return None, None
+    src = str(entry.get("source", ""))
+    slug = src if SLUG_RE.match(src) else _slug_from_url(str(entry.get("sourceUrl", "")))
+    return entry.get("pluginName"), slug
 
 
 def load_config(path: str):
@@ -114,9 +151,12 @@ def main() -> int:
     ap.add_argument("--config", help="path to a marketplace.config.json")
     ap.add_argument("--root", default=".", help="marketplace checkout to detect from (its origin remote); default: cwd")
     ap.add_argument("--skill-dir", help="skill dir to look for marketplace.config.json (default: derived)")
+    ap.add_argument("--known-marketplaces", help="override path to Claude known_marketplaces.json (testing)")
+    ap.add_argument("--skill-lock", help="override path to Codex .skill-lock.json (testing)")
     args = ap.parse_args()
 
     skill_dir = args.skill_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    skill_name = os.path.basename(os.path.normpath(skill_dir))
     result = {"resolved": False, "repo": None, "name": None,
               "defaultBranch": None, "source": None, "hint": None}
 
@@ -135,14 +175,18 @@ def main() -> int:
         if cfg and cfg.get("repo") and SLUG_RE.match(str(cfg["repo"])):
             result.update(repo=cfg["repo"], name=cfg.get("name"), source="config")
 
-    # 3. self-location (the skill's own root marketplace)
+    # 3. self-location — try whichever harness registry is present (Claude, then Codex).
     if not result["repo"]:
-        name, slug = marketplace_from_self_location(__file__)
+        name, slug = marketplace_from_claude_registry(__file__, args.known_marketplaces)
         if slug:
             result.update(repo=slug, name=name, source="self-location")
-        elif name:
-            result.update(name=name, hint=f"marketplace {name!r} not in known_marketplaces.json "
-                                          "(Codex, or added under another name) — confirm the repo")
+        else:
+            cx_name, cx_slug = marketplace_from_codex_lock(skill_name, args.skill_lock)
+            if cx_slug:
+                result.update(repo=cx_slug, name=cx_name, source="self-location-codex")
+            elif name:
+                result.update(name=name, hint=f"marketplace {name!r} not in known_marketplaces.json "
+                                              "(added under another name?) — confirm the repo")
 
     # 4. git remote of --root, only if that dir is itself a marketplace checkout.
     #    Use --root to point at the TARGET marketplace's checkout so this detects its

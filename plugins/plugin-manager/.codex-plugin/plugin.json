@@ -1,6 +1,6 @@
 {
   "name": "plugin-manager",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Maintainer plugin for a plugin marketplace: onboard and release plugins with dual Claude Code + Codex support (naming, semver bump + tag, PR-only), and turn real session friction with a marketplace skill into a redacted, human-approved improvement issue (real-time skill-feedback).",
   "author": {
     "name": "falconh"

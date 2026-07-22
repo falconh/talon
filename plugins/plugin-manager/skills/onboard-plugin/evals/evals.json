@@ -1,12 +1,19 @@
 {
   "skill_name": "onboard-plugin",
-  "note": "These prompts exercise the skill across ANY GitHub-hosted marketplace (not just Talon), plus the confirm-target and fork-contributor paths. Running them for real performs live GitHub side effects (forks, branches, PRs, tags) on real repos, so execute them only against throwaway repos, behind a fake-gh PATH shim, or in a dry run. Kept as triggering + workflow references.",
+  "note": "Prompts exercise the skill across ANY GitHub-hosted marketplace (not just Talon): the core onboard/release flows, the confirm-target and fork-contributor paths, and (evals 6-8) the provider-agnostic requirements from the Phase 1-2 design (self-contained files with no CLAUDE_PLUGIN_ROOT dependence; Codex self-location; script-less manual fallback; unknown-harness Tier-1 correctness). Running these for real performs live GitHub side effects, so execute only against throwaway repos, behind a fake-gh PATH shim, or as a dry run (the eval runner asks for a plan, not real pushes).",
   "evals": [
     {
       "id": 1,
       "name": "generic-named-marketplace",
       "prompt": "I just pushed a plugin to github.com/acme/acme-slack-notify. Onboard it into my marketplace, github.com/acme/acme-skills, so it installs from both Claude Code and Codex.",
       "expected_output": "Targets acme/acme-skills (NOT Talon) — the user named it. Resolves that repo's real default branch (via resolve_marketplace.py / gh, never assumes main). Makes the plugin dual-compatible (adds .codex-plugin/plugin.json if missing, bumps version, tags), then adds matching acme-slack-notify entries to BOTH catalogs as an HTTPS url source pinned to the tag, and opens a PR against acme/acme-skills. All changes via PR; never pushes a default branch.",
+      "assertions": [
+        "Targets acme/acme-skills as the marketplace; never targets falconh/talon",
+        "Resolves the real default branch (via resolver/gh); does not assume 'main'",
+        "Adds acme-slack-notify to BOTH catalogs (.claude-plugin and .agents/plugins) as an HTTPS url source pinned to the release tag",
+        "Adds the missing .codex-plugin/plugin.json and bumps + tags the plugin",
+        "All changes via PR; never pushes a default branch"
+      ],
       "files": []
     },
     {
@@ -14,6 +21,12 @@
       "name": "unnamed-marketplace-confirm",
       "prompt": "Onboard my new plugin so it installs from Claude Code and Codex. It's at ~/src/my-plugin, and my marketplace repo is checked out at ~/src/my-marketplace.",
       "expected_output": "Does NOT assume Talon. Determines the target marketplace from the provided checkout — runs resolve_marketplace.py --root ~/src/my-marketplace (or reads its origin remote), presents that repo as the default, and confirms with the user before proceeding. Resolves the real default branch. Then proceeds with the normal dual-catalog onboarding.",
+      "assertions": [
+        "Does not assume Talon; determines the marketplace from the provided ~/src/my-marketplace checkout (resolver --root or its origin remote)",
+        "Presents that repo as the default and confirms with the user before proceeding",
+        "Resolves the real default branch",
+        "Proceeds with dual-catalog onboarding (both catalogs, via PR)"
+      ],
       "files": []
     },
     {
@@ -21,6 +34,13 @@
       "name": "contributor-fork-no-write-access",
       "prompt": "I want to add my plugin to the acme-skills marketplace (github.com/acme/acme-skills) but I don't own it — I only have read access. How do I get it in?",
       "expected_output": "Detects the lack of write access (gh repo view --json viewerPermission => READ) and uses the FORK flow: fork acme/acme-skills, push the branch to the fork, open a PR with --head <login>:<branch> against acme/acme-skills' default branch. Because the contributor also can't create a release tag on their own plugin repo, recommends vendoring the plugin as a LOCAL source in the fork PR (no tag needed) rather than a non-completable remote pin. Never instructs a direct push to the upstream marketplace.",
+      "assertions": [
+        "Detects lack of write access (gh repo view --json viewerPermission => READ, or a 403 on push)",
+        "Uses the fork flow: fork, push to the fork, PR with --head <login>:<branch> against acme/acme-skills",
+        "Recommends vendoring as a LOCAL source (no tag needed) since the contributor can't tag their plugin repo",
+        "Never instructs a direct push to the upstream marketplace",
+        "Finds the fork/push-access guidance in the skill's bundled references (self-contained)"
+      ],
       "files": []
     },
     {
@@ -28,6 +48,13 @@
       "name": "release-update-existing",
       "prompt": "I added a second skill to terraform-module-steering. Cut a new release and update the Talon marketplace to point at it.",
       "expected_output": "Treats this as a minor bump (additive). Confirms the target marketplace (Talon here, since named). Lands the change on the plugin repo via PR, bumps version in BOTH manifests, tags vX.Y.0, then opens a marketplace PR re-pinning both catalog entries' ref (and the Claude entry version) to the new tag. Resolves the marketplace's real default branch for the PR base. Verifies the tag resolves first.",
+      "assertions": [
+        "Treats it as a minor (additive) version bump",
+        "Confirms the target marketplace (Talon, since named)",
+        "Lands the change via PR, bumps version in BOTH manifests, tags vX.Y.0",
+        "Opens a marketplace PR re-pinning both catalog entries (and the Claude entry version) to the new tag",
+        "Resolves the marketplace's real default branch and verifies the tag resolves first"
+      ],
       "files": []
     },
     {
@@ -35,6 +62,50 @@
       "name": "naming-and-requirements",
       "prompt": "What should I name the repo for a new Datadog monitors plugin, and what do I need in it before it can go on a marketplace?",
       "expected_output": "Suggests a concise, purpose-reflecting name like datadog-monitors via the naming thought process (no marketplace prefix; repo name == plugin name; kebab-case; domain-named so it survives growth). Notes grouping via a GitHub topic instead of a prefix. Requires both .claude-plugin/plugin.json and .codex-plugin/plugin.json, skills/<skill>/SKILL.md with both name and description, a version, and a vX.Y.Z tag to pin from the marketplace. All changes via PR.",
+      "assertions": [
+        "Suggests a concise, purpose-reflecting kebab-case name like datadog-monitors (no marketplace prefix; repo == plugin name)",
+        "Notes grouping via a GitHub topic instead of a prefix",
+        "Requires both manifests, a SKILL.md with both name and description, a version, and a vX.Y.Z tag",
+        "All changes via PR"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "codex-self-contained-onboard",
+      "prompt": "I'm running you inside Codex, not Claude Code. Skills are installed flat under ~/.agents/skills/ and there is no $CLAUDE_PLUGIN_ROOT variable set. Onboard my plugin (github.com/acme/acme-slack-notify, freshly pushed) into the marketplace this skill came from, so it installs from both tools. Walk me through the exact plan.",
+      "expected_output": "Runs entirely under Codex without depending on Claude-only plumbing: locates its own bundled scripts/references by a path relative to the skill's own directory (never via $CLAUDE_PLUGIN_ROOT), self-detects the marketplace from Codex's ~/.agents/.skill-lock.json (or confirms it with the user) rather than claiming it can't, and does the normal dual-catalog onboarding (both catalogs, HTTPS url source pinned to a tag, PR).",
+      "assertions": [
+        "Locates the skill's bundled scripts/references by a path relative to the skill's own directory, not via $CLAUDE_PLUGIN_ROOT",
+        "Does not claim it needs a Claude-only variable or that it cannot find its files / cannot self-locate under Codex",
+        "Detects the target marketplace on Codex (via ~/.agents/.skill-lock.json self-location) OR confirms it with the user — does not dead-end",
+        "References github-access.md / templates as bundled inside the skill, not at a plugin-root path",
+        "Edits BOTH catalogs and opens the change as a PR"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "no-python-manual-verify",
+      "prompt": "python3 isn't installed on this machine. Before I open the onboarding PR for my plugin, how do I verify that both marketplace catalogs are correct without running your bundled validator script?",
+      "expected_output": "Treats the bundled validator as an accelerator, not a hard dependency: gives a manual verification path that walks the validator's actual checks by hand — both catalogs parse, the plugin appears in BOTH, local plugins carry both manifests plus a dual-valid skill (name+description), and a remote entry is pinned to a tag using an HTTPS (not SSH) source.",
+      "assertions": [
+        "Does not insist the bundled script is required; provides a workable manual path",
+        "Walks the validator's actual checks by hand: both catalogs parse, plugin appears in BOTH, local plugins have both manifests + a dual-valid skill (name+description), remote entry pinned to a tag using an HTTPS (not SSH) source",
+        "Frames the script as an accelerator, not a dependency"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "unknown-harness-onboard",
+      "prompt": "I'm running you in a custom agent runner that supports SKILL.md skills but is neither Claude Code nor Codex. Onboard my plugin at github.com/acme/acme-slack-notify into github.com/acme/acme-skills.",
+      "expected_output": "Works on an unrecognized harness without depending on any harness-specific env var or registry. Determines the marketplace via a harness-neutral path (git remote of the checkout, explicit --repo, a marketplace.config.json, or by asking/confirming), resolves the real default branch, targets acme/acme-skills, edits BOTH catalogs, and opens a PR.",
+      "assertions": [
+        "Does not depend on any harness-specific env var or registry ($CLAUDE_PLUGIN_ROOT, known_marketplaces.json, .skill-lock.json) to function",
+        "Determines the marketplace via a harness-neutral path: git remote of the checkout, an explicit --repo/owner-name, a marketplace.config.json, or by asking/confirming with the user",
+        "Targets acme/acme-skills, edits BOTH catalogs, resolves the real default branch (never assumes main), and opens a PR"
+      ],
       "files": []
     }
   ]

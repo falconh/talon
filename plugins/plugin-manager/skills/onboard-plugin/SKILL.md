@@ -53,7 +53,7 @@ fine for the other.
 1. **Every change is a pull request.** Never push to a default branch (`main`/`master`). Branch,
    commit, push the branch (plain `git`), and open a PR — for both the plugin repo and the
    marketplace repo. (How to open a PR when `gh` isn't installed: *Before you start*, below, picks the
-   backend; `${CLAUDE_PLUGIN_ROOT}/references/github-access.md` has the commands.)
+   backend; [`references/github-access.md`](references/github-access.md) has the commands.)
 2. **Both catalogs always move together.** If a plugin appears in one catalog it must appear in the
    other. If you change a version/ref in one, change it in the other in the same PR.
 3. **Every plugin ships both manifests + a dual-valid skill.** A plugin needs both
@@ -71,16 +71,21 @@ fine for the other.
 
 ## Before you start
 
-**`${CLAUDE_PLUGIN_ROOT}` below is a placeholder for this plugin's install directory** — the paths
-that use it point at bundled scripts and reference docs. Claude Code sets this variable for
-skill/hook execution; **Codex does not set a variable by that name** (nor is it guaranteed in an
-ad-hoc shell). So read every `${CLAUDE_PLUGIN_ROOT}/…` as *the path to this plugin* and run the
-bundled scripts by their resolved absolute path — don't rely on the shell expanding the variable.
+**Paths in this skill are relative to this skill's own directory** — the folder holding this
+`SKILL.md` (`scripts/…`, `references/…`). Everything the skill needs ships inside that folder, so
+resolve them against wherever your harness installed the skill and the skill works on any of them.
+If your harness exposes an install root, use it (Claude Code: `$CLAUDE_PLUGIN_ROOT/skills/onboard-plugin`);
+otherwise use the directory this `SKILL.md` was loaded from.
+
+**The bundled scripts accelerate the work; they are never required to do it.** If you can't run them
+(no `python3`, or a harness that doesn't execute bundled code), do their job by hand — each one's
+logic is spelled out in prose where it's used: the resolver's fallback chain just below, and the
+validator's checks under *Verification*.
 
 Make sure you can reach GitHub for PRs. `git` is always required; for opening the PR, use whichever
 is available — `gh` (`gh auth status`, needs `repo` scope), the GitHub MCP server, or the REST API
 with `GH_TOKEN`/`GITHUB_TOKEN`. The command examples below use `gh`; substitute per
-`${CLAUDE_PLUGIN_ROOT}/references/github-access.md` if `gh` isn't installed.
+[`references/github-access.md`](references/github-access.md) if `gh` isn't installed.
 
 **Identify and confirm the target marketplace — never hardcode one.** This skill is not tied to any
 one marketplace; it works with any GitHub-hosted dual Claude Code + Codex marketplace. Before Flow A
@@ -89,12 +94,13 @@ or B, establish which marketplace you are publishing to:
 1. **Auto-detect the default.** Run the resolver — it reports the marketplace this skill was
    installed from (its *root marketplace*) and that repo's live default branch:
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/resolve_marketplace.py"
+   python3 scripts/resolve_marketplace.py     # path relative to this skill's directory
    ```
    It resolves the repo slug in this order: an explicit `--repo owner/name`; a
    `marketplace.config.json` beside the skill (drop one in when you clone this plugin into your own
-   marketplace — see `references/templates.md`); self-location from the install path via
-   `~/.claude/plugins/known_marketplaces.json`; else the `origin` remote of a marketplace checkout.
+   marketplace — see `references/templates.md`); self-location via whichever harness registry is
+   present (Claude Code's `~/.claude/plugins/known_marketplaces.json`, or Codex's
+   `~/.agents/.skill-lock.json`); else the `origin` remote of a marketplace checkout.
    If the user hands you the target marketplace's checkout, point the resolver at it with
    `--root <path-to-that-checkout>` so it reads *that* repo's origin, not whatever repo your session
    happens to be in. `defaultBranch` comes from a live `git ls-remote` — **never assume `main`; many
@@ -106,8 +112,8 @@ or B, establish which marketplace you are publishing to:
    `repo` as the default and ask them to accept it or name a different `owner/name`. A plugin is not
    owned by any one marketplace and **anyone can contribute to a marketplace they don't own via a
    fork PR**, so the target may legitimately differ from the root marketplace. If the resolver
-   returns `"resolved": false` (e.g. on Codex, which has no `known_marketplaces.json`, or when run
-   from an unrelated directory), **ask** for the marketplace's `owner/name`, then re-run with
+   returns `"resolved": false` (an unknown harness with no recognised registry, or run from an
+   unrelated directory), **ask** for the marketplace's `owner/name`, then re-run with
    `--repo owner/name` to fetch its default branch. If the marketplace had to be entered by hand and
    the skill directory is writable, offer to save it to `marketplace.config.json` for next time.
 3. **Use the confirmed `repo` and `defaultBranch`** everywhere the workflow shows
@@ -197,9 +203,13 @@ entries are pinned to a tag (not a bare branch) and use an HTTPS (not SSH) sourc
 SSH-prone-source warning as **blocking** (why: the `url`-vs-`github` note in `references/templates.md`):
 
 ```bash
-# the script always lives in the installed plugin; --root points at the marketplace checkout being validated
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/onboard-plugin/scripts/validate_talon.py" --root <marketplace-checkout>
+# path relative to this skill's directory; --root is the marketplace checkout being validated
+python3 scripts/validate_talon.py --root <marketplace-checkout>
 ```
+
+**Can't run it?** Those four checks in the paragraph above are the whole contract — walk them by
+hand against the two catalogs and the plugin's manifests. The validator is a faster, less
+error-prone way to reach the same verdict, not a different one.
 
 Also sanity-check by hand:
 - Every touched `*.json` parses.
@@ -216,4 +226,5 @@ the **same** PR so the two tools never drift.
 - Naming a new plugin (choosing the `name`): `references/naming.md`
 - Manifest + catalog JSON (local and remote, both tools): `references/templates.md`
 - Branch/PR/tag command sequence (`gh` / MCP / REST, incl. fork PRs): `references/release-and-pr-workflow.md`
+- GitHub transports, push-access-vs-fork, token setup: `references/github-access.md`
 - Validator: `scripts/validate_talon.py`
