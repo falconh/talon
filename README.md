@@ -13,7 +13,7 @@ One repo, two marketplaces, the same skills.
 | `hello-world` | Example/template plugin with a friendly greeting skill. | local (`plugins/hello-world`) |
 | `terraform-module-steering` | Steering-document generator + spec-driven orchestrator for secure-by-default Terraform/OpenTofu modules (per-service CIS/FSBP research, wrap-upstream, hardcoded security, docs + verification). | remote, pinned `v1.4.0` ([`falconh/terraform-module-steering`](https://github.com/falconh/terraform-module-steering)) |
 | `plugin-manager` | Maintainer plugin: onboard and release plugins on this marketplace (dual Claude Code + Codex, naming guidance, version bumping, PR workflow), plus real-time feedback that offers to file a redacted enhancement issue on a plugin's own repo when one of its skills disappoints the user. | local (`plugins/plugin-manager`) |
-| `aws-transform-supervisor` | Supervise an AWS Transform (`atx`) migration run on one repo: author and publish a Recipe, monitor a long-running job, resume or nudge it, and turn the exit criteria it could not meet into a written remediation plan. | remote, pinned `v0.1.3` ([`falconh/aws-transform-supervisor`](https://github.com/falconh/aws-transform-supervisor)) |
+| `aws-transform-supervisor` | Supervise an AWS Transform (`atx`) migration run on one repo: author and publish a Recipe, monitor a long-running job, resume or nudge it, and turn the exit criteria it could not meet into a written remediation plan. | remote, pinned `v0.1.4` ([`falconh/aws-transform-supervisor`](https://github.com/falconh/aws-transform-supervisor)) |
 
 Plugins can live **in this repo** (local source) or **in their own repo** (remote
 git source); both Claude Code and Codex resolve either kind from the catalogs.
