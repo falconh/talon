@@ -45,10 +45,10 @@
       "source": {
         "source": "url",
         "url": "https://github.com/falconh/aws-transform-supervisor.git",
-        "ref": "v0.1.0"
+        "ref": "v0.1.1"
       },
       "description": "Supervise an AWS Transform (atx) migration run: author and publish a Recipe you own, monitor a long-running job, resume or nudge it, and turn the exit criteria it could not meet into a written remediation plan.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
